@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import traceback
+import html
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
@@ -31,10 +32,6 @@ SUBMISSION_ROOT = Path(os.getenv("BUGLAB_SUBMISSION_ROOT", str(ROOT / ".buglab" 
 SUBMISSION_JSON = SUBMISSION_ROOT / "submission_results.json"
 SUBMISSION_MD = SUBMISSION_ROOT / "submission_package.md"
 SUBMISSION_FREEZE_JSON = SUBMISSION_ROOT / "submission_freeze.json"
-LIVE_SUBMISSION_JSON_ENV = os.getenv("BUGLAB_LIVE_SUBMISSION_JSON", "").strip()
-LIVE_SUBMISSION_MD_ENV = os.getenv("BUGLAB_LIVE_SUBMISSION_MD", "").strip()
-LIVE_SUBMISSION_JSON = Path(LIVE_SUBMISSION_JSON_ENV) if LIVE_SUBMISSION_JSON_ENV else None
-LIVE_SUBMISSION_MD = Path(LIVE_SUBMISSION_MD_ENV) if LIVE_SUBMISSION_MD_ENV else None
 BRAND_MOTTO = "Rapid Recursive Bug Hunter"
 
 
@@ -442,7 +439,7 @@ def buglab_submission() -> dict[str, object]:
         "ok": True,
         "available": True,
         "source": source,
-        "sourcePath": str(submission_json),
+        "sourcePath": public_path(submission_json),
         "updatedAt": payload.get("updated_at_utc", ""),
         "packageHref": "/submission/package.md" if submission_md.exists() else "",
         "freeze": freeze_summary(freeze, source, str(payload.get("updated_at_utc", ""))),
@@ -660,10 +657,31 @@ def freeze_summary(freeze: dict[str, Any], source: str, package_updated_at: str)
 
 
 def current_submission_paths() -> tuple[Path, Path, str]:
-    if LIVE_SUBMISSION_JSON is not None and LIVE_SUBMISSION_JSON.exists():
-        markdown = LIVE_SUBMISSION_MD if LIVE_SUBMISSION_MD is not None and LIVE_SUBMISSION_MD.exists() else SUBMISSION_MD
-        return LIVE_SUBMISSION_JSON, markdown, "live"
+    live_enabled = os.getenv("BUGLAB_ENABLE_LIVE_SUBMISSION", "").strip().lower() in {"1", "true", "yes", "on"}
+    allow_external = os.getenv("BUGLAB_ALLOW_EXTERNAL_SUBMISSION", "").strip().lower() in {"1", "true", "yes", "on"}
+    live_json_value = os.getenv("BUGLAB_LIVE_SUBMISSION_JSON", "").strip()
+    live_md_value = os.getenv("BUGLAB_LIVE_SUBMISSION_MD", "").strip()
+    live_json = Path(live_json_value) if live_enabled and live_json_value else None
+    live_md = Path(live_md_value) if live_enabled and live_md_value else None
+    if live_json is not None and live_json.exists() and (allow_external or is_inside_root(live_json)):
+        markdown = live_md if live_md is not None and live_md.exists() else SUBMISSION_MD
+        return live_json, markdown, "live"
     return SUBMISSION_JSON, SUBMISSION_MD, "snapshot"
+
+
+def is_inside_root(path: Path) -> bool:
+    try:
+        path.resolve().relative_to(ROOT.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def public_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        return ""
 
 
 def run_buglab_action(action: str, payload: dict[str, object] | None = None) -> dict[str, object]:
@@ -790,22 +808,213 @@ def run_find_and_fix(repo: Path, run_name: str) -> dict[str, object]:
     )
     audit = result.get("audit", {}) if isinstance(result.get("audit"), dict) else {}
     summary = dict(audit.get("summary", {}) if isinstance(audit.get("summary"), dict) else result.get("summary", {}))
+    repair_result = run_ponytail_fix_pass(repo, run_name, audit)
+    repair_summary = repair_result.get("summary", {}) if isinstance(repair_result.get("summary"), dict) else {}
     summary["workflow_path"] = result.get("workflow_path", "")
     summary["case_count"] = result.get("summary", {}).get("case_count", 0) if isinstance(result.get("summary"), dict) else 0
-    summary.setdefault("repair_attempts", 0)
-    summary.setdefault("repair_pass_rate", 0)
-    summary["repair_note"] = "Generic repository Find + Fix currently runs detector calibration only; patch loops require a verified repair target."
+    summary["repair_attempts"] = metric_int(repair_summary, "repair_attempts")
+    summary["repair_passed"] = metric_int(repair_summary, "repair_passed")
+    summary["repair_pass_rate"] = metric_float(repair_summary, "repair_pass_rate")
+    summary["repair_total_before"] = sum(metric_int(row, "before") for row in repair_result.get("repair_rows", []) if isinstance(row, dict))
+    summary["repair_total_after"] = sum(metric_int(row, "after") for row in repair_result.get("repair_rows", []) if isinstance(row, dict))
+    summary["repair_mode"] = repair_result.get("mode", "ponytail")
+    summary["repair_note"] = repair_result.get(
+        "note",
+        "Ponytail fix agents routed every detected issue through a smallest-change repair pass; verified fixes require before/after evidence.",
+    )
+    presentation_json = write_find_fix_presentation_payload(run_name, repo, result, audit, summary, repair_result)
     return action_result(
         summary,
         {
             "html": audit.get("report_path", ""),
-            "json": audit.get("json_path", ""),
+            "json": presentation_json,
             "cases": audit.get("case_index_path", ""),
             "findings": audit.get("findings_jsonl_path", ""),
             "workflow": result.get("workflow_path", ""),
+            "repair": repair_result.get("html_path", ""),
         },
         mode="find_and_fix",
     )
+
+
+def run_ponytail_fix_pass(repo: Path, run_name: str, audit: dict[str, Any]) -> dict[str, Any]:
+    manifests_ready = all((repo / path).is_file() for path in DEFAULT_REPAIR_MANIFESTS)
+    if manifests_ready:
+        from buglab.api import run_swarm
+
+        repair_result = run_swarm(
+            repo=repo,
+            output=RUNS_DIR,
+            fields=["browser_api", "cli_data", "repo_quality"],
+            loops=1,
+            profiles=["balanced"],
+            max_clicks=8,
+            run_name=f"{run_name}_ponytail_fix",
+            repair=True,
+            build_report_index=True,
+        )
+        repair_result["mode"] = "verified_sector_repair"
+        repair_result["note"] = "Ponytail fix agents ran deterministic before/after repair implementations against the selected target's BugLab sector manifests."
+        return repair_result
+
+    return build_ponytail_fix_queue(repo, run_name, audit)
+
+
+DEFAULT_REPAIR_MANIFESTS = (
+    Path("targets/sectors/html_interaction/manifest.json"),
+    Path("targets/sectors/api_workflows/manifest.json"),
+    Path("targets/sectors/cli_data/manifest.json"),
+)
+
+
+def build_ponytail_fix_queue(repo: Path, run_name: str, audit: dict[str, Any]) -> dict[str, Any]:
+    findings = read_audit_findings(audit)
+    repair_rows = []
+    for finding in findings:
+        signal_count = metric_int(finding, "signal_count") or len(finding.get("signals", []) if isinstance(finding.get("signals", []), list) else [])
+        sector = str(finding.get("sector") or "bug")
+        repair_rows.append(
+            {
+                "field": "ponytail_fix_agent",
+                "sector": sector,
+                "manifest": "",
+                "technique": "ponytail_fix_plan",
+                "status": "queued",
+                "before": signal_count,
+                "after": signal_count,
+                "repair_success_rate": 0,
+                "csv_path": "",
+                "json_path": str(finding.get("case_json_path", "")),
+                "notes": ponytail_fix_note(finding),
+            }
+        )
+
+    summary = {
+        "repair_attempts": len(repair_rows),
+        "repair_passed": 0,
+        "repair_pass_rate": 0,
+        "total_before_found_bugs": sum(metric_int(row, "before") for row in repair_rows),
+        "total_after_found_bugs": sum(metric_int(row, "after") for row in repair_rows),
+    }
+    json_path = RUNS_DIR / f"{run_name}_ponytail_fix_queue.json"
+    html_path = RUNS_DIR / f"{run_name}_ponytail_fix_queue.html"
+    RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": "buglab.ponytail_fix_queue.v1",
+        "repo": str(repo),
+        "summary": summary,
+        "repair_rows": repair_rows,
+        "findings": findings,
+        "policy": {
+            "name": "Ponytail",
+            "rule": "smallest targeted implementation per finding, then rerun the exact detector before marking fixed",
+        },
+    }
+    json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    html_path.write_text(render_ponytail_fix_queue_html(repo, summary, repair_rows), encoding="utf-8")
+    return {
+        "mode": "queued_issue_repair",
+        "note": "Selected target has no BugLab sector repair manifests, so every detected issue was assigned to a Ponytail fix agent queue instead of claiming unverified code edits.",
+        "summary": summary,
+        "repair_rows": repair_rows,
+        "json_path": str(json_path),
+        "html_path": str(html_path),
+        "truth_ledger_path": "",
+    }
+
+
+def read_audit_findings(audit: dict[str, Any]) -> list[dict[str, Any]]:
+    path = Path(str(audit.get("findings_jsonl_path", "")))
+    if not path.is_file():
+        return []
+    findings: list[dict[str, Any]] = []
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            item = json.loads(line)
+            if isinstance(item, dict):
+                findings.append(item)
+    except (OSError, json.JSONDecodeError):
+        return []
+    return findings
+
+
+def ponytail_fix_note(finding: dict[str, Any]) -> str:
+    hypothesis = str(finding.get("fix_hypothesis", "")).strip()
+    target = str(finding.get("target", "")).strip()
+    if hypothesis and target:
+        return f"ponytail_agent_assigned target={target}; hypothesis={hypothesis}"
+    if target:
+        return f"ponytail_agent_assigned target={target}"
+    return "ponytail_agent_assigned"
+
+
+def render_ponytail_fix_queue_html(repo: Path, summary: dict[str, Any], repair_rows: list[dict[str, Any]]) -> str:
+    rows = "\n".join(
+        f"<tr><td>{html.escape(str(row.get('sector', '')))}</td><td>{html.escape(str(row.get('status', '')))}</td>"
+        f"<td>{html.escape(str(row.get('before', '')))}</td><td>{html.escape(str(row.get('notes', '')))}</td></tr>"
+        for row in repair_rows
+    )
+    return f"""<!doctype html>
+<meta charset="utf-8">
+<title>BugLab Ponytail Fix Queue</title>
+<style>
+body {{ background:#030603; color:#8cff9a; font:14px Consolas,monospace; padding:24px; }}
+table {{ border-collapse:collapse; width:100%; }}
+td, th {{ border-bottom:1px solid #163a20; padding:8px; text-align:left; vertical-align:top; }}
+</style>
+<h1>Ponytail Fix Queue</h1>
+<p>Target: {html.escape(str(repo))}</p>
+<p>Agents assigned: {int(summary.get('repair_attempts', 0))}. Verified fixes: {int(summary.get('repair_passed', 0))}.</p>
+<table><thead><tr><th>Sector</th><th>Status</th><th>Signals</th><th>Fix Route</th></tr></thead><tbody>{rows}</tbody></table>
+"""
+
+
+def write_find_fix_presentation_payload(
+    run_name: str,
+    repo: Path,
+    workflow: dict[str, Any],
+    audit: dict[str, Any],
+    summary: dict[str, Any],
+    repair_result: dict[str, Any],
+) -> str:
+    audit_payload: dict[str, Any] = {}
+    audit_json = Path(str(audit.get("json_path", "")))
+    if audit_json.exists():
+        try:
+            loaded = json.loads(audit_json.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                audit_payload = loaded
+        except (OSError, json.JSONDecodeError):
+            audit_payload = {}
+    rows = audit_payload.get("rows", [])
+    findings = audit_payload.get("findings", [])
+    payload = {
+        "schema_version": "buglab.find_fix_presentation.v1",
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "repo": str(repo),
+        "summary": summary,
+        "rows": rows if isinstance(rows, list) else [],
+        "findings": findings if isinstance(findings, list) else [],
+        "repair_summary": repair_result.get("summary", {}),
+        "repair_rows": repair_result.get("repair_rows", []),
+        "repair_truth_ledger_path": repair_result.get("truth_ledger_path", ""),
+        "workflow": {
+            "workflow_path": workflow.get("workflow_path", ""),
+            "audit_json_path": audit.get("json_path", ""),
+            "repair_json_path": repair_result.get("json_path", ""),
+            "repair_html_path": repair_result.get("html_path", ""),
+        },
+        "pony_tail_policy": {
+            "method": "Ponytail fix loop",
+            "rule": "smallest deterministic patch, before/after verification, unsupported sectors queued instead of claimed fixed",
+        },
+    }
+    out_path = RUNS_DIR / f"{run_name}_find_fix_presentation.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return str(out_path)
 
 
 def action_result(summary: object, artifacts: dict[str, object], *, mode: str = "find") -> dict[str, object]:

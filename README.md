@@ -14,8 +14,8 @@ BugLab is a one-shot local bug hunting tool. Pick a project folder, run a hunt, 
 ## Run
 
 ```powershell
-git clone <repo-url>
-cd buglab
+git clone https://github.com/newjordan/buglab-submission.git
+cd buglab-submission
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
