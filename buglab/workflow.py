@@ -78,7 +78,7 @@ def bughunt_repo(config: BugHuntWorkflowConfig | None = None, **kwargs: Any) -> 
     if config.build_pareto:
         from buglab.pareto import build_findings_pareto
 
-        pareto = build_findings_pareto(repo=repo, output=output_root, top=config.pareto_top)
+        pareto = build_findings_pareto(repo=repo, output=output_root, top=config.pareto_top, run_ids=[audit["run_id"]])
 
     index = None
     if config.build_report_index:

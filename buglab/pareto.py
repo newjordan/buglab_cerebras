@@ -13,10 +13,11 @@ def build_findings_pareto(
     repo: str | Path = ".",
     output: str | Path = ".buglab/runs",
     top: int = 20,
+    run_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     repo_path = Path(repo).resolve()
     output_root = (repo_path / output).resolve() if not Path(output).is_absolute() else Path(output).resolve()
-    records = collect_findings(output_root)
+    records = collect_findings(output_root, run_ids=run_ids)
     summary = summarize_findings(records, top=top)
     csv_path = output_root / "findings_pareto.csv"
     json_path = output_root / "findings_pareto.json"
@@ -27,6 +28,7 @@ def build_findings_pareto(
         "schema_version": "buglab.findings_pareto.v1",
         "repo": str(repo_path),
         "output_root": str(output_root),
+        "run_ids": run_ids or [],
         "summary": summary,
     }
     json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -39,10 +41,13 @@ def build_findings_pareto(
     }
 
 
-def collect_findings(output_root: Path) -> list[dict[str, Any]]:
+def collect_findings(output_root: Path, *, run_ids: list[str] | None = None) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
+    allowed_runs = set(run_ids or [])
     for path in sorted(output_root.glob("*/findings.jsonl")):
         run_id = path.parent.name
+        if allowed_runs and run_id not in allowed_runs:
+            continue
         for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
             if not line.strip():
                 continue
