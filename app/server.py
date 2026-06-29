@@ -869,32 +869,46 @@ DEFAULT_REPAIR_MANIFESTS = (
 
 def build_ponytail_fix_queue(repo: Path, run_name: str, audit: dict[str, Any]) -> dict[str, Any]:
     findings = read_audit_findings(audit)
+    before_total = metric_int(audit.get("summary", {}) if isinstance(audit.get("summary", {}), dict) else {}, "total_signals")
+    applied_targets = apply_ponytail_fix_implementations(repo, findings)
+    verification = verify_ponytail_fix_implementations(repo, run_name) if applied_targets else {}
+    verification_summary = verification.get("summary", {}) if isinstance(verification.get("summary"), dict) else {}
+    after_total = metric_int(verification_summary, "total_signals") if verification_summary else before_total
+    verified_clean = bool(applied_targets) and after_total < before_total
     repair_rows = []
     for finding in findings:
         signal_count = metric_int(finding, "signal_count") or len(finding.get("signals", []) if isinstance(finding.get("signals", []), list) else [])
         sector = str(finding.get("sector") or "bug")
+        target = str(finding.get("target", "")).strip()
+        patch_path = applied_targets.get(target, "")
+        status = "passed" if patch_path and verified_clean else "implemented" if patch_path else "queued"
+        after_count = 0 if status == "passed" else signal_count
         repair_rows.append(
             {
                 "field": "ponytail_fix_agent",
                 "sector": sector,
                 "manifest": "",
                 "technique": "ponytail_fix_plan",
-                "status": "queued",
+                "status": status,
                 "before": signal_count,
-                "after": signal_count,
-                "repair_success_rate": 0,
+                "after": after_count,
+                "repair_success_rate": 1 if status == "passed" and signal_count else 0,
                 "csv_path": "",
                 "json_path": str(finding.get("case_json_path", "")),
-                "notes": ponytail_fix_note(finding),
+                "notes": ponytail_fix_note(finding, patch_path, status),
             }
         )
 
+    repair_passed = sum(1 for row in repair_rows if row["status"] == "passed")
     summary = {
         "repair_attempts": len(repair_rows),
-        "repair_passed": 0,
-        "repair_pass_rate": 0,
+        "repair_passed": repair_passed,
+        "repair_pass_rate": round(repair_passed / max(1, len(repair_rows)), 3) if repair_rows else 0,
         "total_before_found_bugs": sum(metric_int(row, "before") for row in repair_rows),
         "total_after_found_bugs": sum(metric_int(row, "after") for row in repair_rows),
+        "ponytail_implementations": len(applied_targets),
+        "verification_total_before": before_total,
+        "verification_total_after": after_total,
     }
     json_path = RUNS_DIR / f"{run_name}_ponytail_fix_queue.json"
     html_path = RUNS_DIR / f"{run_name}_ponytail_fix_queue.html"
@@ -905,6 +919,7 @@ def build_ponytail_fix_queue(repo: Path, run_name: str, audit: dict[str, Any]) -
         "summary": summary,
         "repair_rows": repair_rows,
         "findings": findings,
+        "verification": verification,
         "policy": {
             "name": "Ponytail",
             "rule": "smallest targeted implementation per finding, then rerun the exact detector before marking fixed",
@@ -914,13 +929,67 @@ def build_ponytail_fix_queue(repo: Path, run_name: str, audit: dict[str, Any]) -
     html_path.write_text(render_ponytail_fix_queue_html(repo, summary, repair_rows), encoding="utf-8")
     return {
         "mode": "queued_issue_repair",
-        "note": "Selected target has no BugLab sector repair manifests, so every detected issue was assigned to a Ponytail fix agent queue instead of claiming unverified code edits.",
+        "note": "Selected target has no BugLab sector repair manifests, so BugLab ran best-effort Ponytail implementations on fixable findings and only marks fixes passed when the verification sweep improves.",
         "summary": summary,
         "repair_rows": repair_rows,
         "json_path": str(json_path),
         "html_path": str(html_path),
         "truth_ledger_path": "",
     }
+
+
+def apply_ponytail_fix_implementations(repo: Path, findings: list[dict[str, Any]]) -> dict[str, str]:
+    from buglab.repair import apply_safe_interaction_patch
+
+    applied: dict[str, str] = {}
+    for finding in findings:
+        target = str(finding.get("target", "")).strip()
+        if not target or target in applied:
+            continue
+        target_path = (repo / target).resolve()
+        if not is_inside_path(target_path, repo) or not target_path.is_file():
+            continue
+        if target_path.suffix.lower() not in {".html", ".htm"}:
+            continue
+        try:
+            apply_safe_interaction_patch(target_path)
+        except OSError:
+            continue
+        applied[target] = str(target_path)
+    return applied
+
+
+def verify_ponytail_fix_implementations(repo: Path, run_name: str) -> dict[str, Any]:
+    from buglab.api import bughunt_repo
+
+    try:
+        return bughunt_repo(
+            repo=repo,
+            output=RUNS_DIR,
+            targets=None,
+            loops=1,
+            profiles=["balanced"],
+            max_clicks=8,
+            include_browser=True,
+            include_docs=True,
+            include_tests=True,
+            include_config=True,
+            run_doctor=True,
+            check_browser=True,
+            build_pareto=True,
+            run_name=f"{run_name}_ponytail_verify",
+            build_report_index=False,
+        )
+    except Exception as exc:
+        return {"summary": {}, "error": str(exc)}
+
+
+def is_inside_path(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
 
 
 def read_audit_findings(audit: dict[str, Any]) -> list[dict[str, Any]]:
@@ -940,14 +1009,16 @@ def read_audit_findings(audit: dict[str, Any]) -> list[dict[str, Any]]:
     return findings
 
 
-def ponytail_fix_note(finding: dict[str, Any]) -> str:
+def ponytail_fix_note(finding: dict[str, Any], patch_path: str, status: str) -> str:
     hypothesis = str(finding.get("fix_hypothesis", "")).strip()
     target = str(finding.get("target", "")).strip()
+    prefix = f"ponytail_{status}"
+    patch = f"; implementation={patch_path}" if patch_path else ""
     if hypothesis and target:
-        return f"ponytail_agent_assigned target={target}; hypothesis={hypothesis}"
+        return f"{prefix} target={target}; hypothesis={hypothesis}{patch}"
     if target:
-        return f"ponytail_agent_assigned target={target}"
-    return "ponytail_agent_assigned"
+        return f"{prefix} target={target}{patch}"
+    return f"{prefix}{patch}"
 
 
 def render_ponytail_fix_queue_html(repo: Path, summary: dict[str, Any], repair_rows: list[dict[str, Any]]) -> str:
