@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Broken Controls Fixture</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: system-ui, sans-serif; background: #f6f8f9; color: #17202a; }
+      main { width: min(980px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 44px; }
+      h1, h2 { margin-top: 0; }
+      .grid { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+      .panel { background: #fff; border: 1px solid #d7dde5; border-radius: 8px; padding: 16px; }
+      form { display: grid; gap: 12px; }
+      label { display: grid; gap: 6px; font-weight: 700; }
+      input, select, button, textarea { min-height: 40px; border: 1px solid #93a0b3; border-radius: 6px; padding: 8px 10px; font: inherit; }
+      textarea { min-height: 88px; resize: vertical; }
+      button { background: #0f766e; color: #fff; cursor: pointer; }
+      button:disabled { background: #b7c0cc; color: #5d6675; cursor: not-allowed; }
+      #toast { min-height: 24px; color: #9d1b1e; font-weight: 700; }
+      .toolbar { display: flex; gap: 10px; flex-wrap: wrap; }
+      .plan-list { min-height: 80px; padding-left: 18px; }
+      @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Account Request</h1>
+      <section class="grid">
+        <form class="panel" id="request-form">
+          <h2>New Access</h2>
+          <label>Name <input id="name" name="name" value="Dana Ops"></label>
+          <label>Email <input id="email" name="email" type="email" value="dana@example.com"></label>
+          <label>Plan
+            <select id="plan" name="plan">
+              <option value="">Select a plan</option>
+              <option value="team">Team</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </label>
+          <label>Notes <textarea id="notes">Needs warehouse dashboard access.</textarea></label>
+          <div class="toolbar">
+            <button id="save-request" type="submit">Save Request</button>
+            <button id="submit-request" type="button" disabled>Submit Request</button>
+          </div>
+          <p id="toast"></p>
+        </form>
+        <aside class="panel">
+          <h2>Plans</h2>
+          <ul class="plan-list" id="plans"></ul>
+          <button id="load-plans" type="button">Load Plans</button>
+        </aside>
+      </section>
+    </main>
+    <script>
+      const toast = document.querySelector("#toast");
+
+      document.querySelector("#request-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        toast.textContent = "Invalid request: undefined approval route";
+      });
+
+      document.querySelector("#load-plans").addEventListener("click", () => {
+        document.querySelector("#plans").setAttribute("aria-busy", "true");
+      });
+
+      document.querySelector("#plan").addEventListener("change", () => {
+        toast.textContent = "Could not calculate plan price";
+      });
+    </script>
+  </body>
+</html>

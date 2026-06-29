@@ -1,0 +1,5 @@
+invoice_id,customer,amount,status
+INV-001,Acme Corp,125.00,paid
+INV-002,Globex,80.50,paid
+INV-003,Acme Corp,40.00,void
+INV-004,Acme Corp,10.00,paid

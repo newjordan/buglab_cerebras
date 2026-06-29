@@ -1,0 +1,58 @@
+{
+  "schema_version": "buglab.sector.v1",
+  "sector": "package_health",
+  "version": 1,
+  "description": "Dependency-free package, dependency, and build-health fixtures for generic business repositories.",
+  "fixtures": [
+    {
+      "id": "node_dependency_drift",
+      "target_path": "targets/sectors/package_health/fixtures/node_dependency_drift/package.json",
+      "data_paths": ["targets/sectors/package_health/fixtures/node_dependency_drift/package.json"],
+      "expected_bug_classes": ["unpinned_dependency", "missing_lockfile"],
+      "expected_minimum_bugs": 2,
+      "suggested_command": "python targets/sectors/package_health/probes/check_package_health.py --project targets/sectors/package_health/fixtures/node_dependency_drift --kind node",
+      "forbidden_stdout": ["unpinned_dependency", "missing_lockfile"],
+      "repo_audit_expected_signals": ["unpinned_dependency", "missing_lockfile"],
+      "timeout_sec": 10
+    },
+    {
+      "id": "node_script_risk",
+      "target_path": "targets/sectors/package_health/fixtures/node_script_risk/package.json",
+      "data_paths": [
+        "targets/sectors/package_health/fixtures/node_script_risk/package.json",
+        "targets/sectors/package_health/fixtures/node_script_risk/.nvmrc"
+      ],
+      "expected_bug_classes": ["engine_mismatch", "deprecated_script", "insecure_lifecycle_script"],
+      "expected_minimum_bugs": 3,
+      "suggested_command": "python targets/sectors/package_health/probes/check_package_health.py --project targets/sectors/package_health/fixtures/node_script_risk --kind node",
+      "forbidden_stdout": ["engine_mismatch", "deprecated_script", "insecure_lifecycle_script"],
+      "repo_audit_expected_signals": ["engine_mismatch", "deprecated_script", "insecure_lifecycle_script"],
+      "timeout_sec": 10
+    },
+    {
+      "id": "python_requires_stale",
+      "target_path": "targets/sectors/package_health/fixtures/python_requires_stale/pyproject.toml",
+      "data_paths": ["targets/sectors/package_health/fixtures/python_requires_stale/pyproject.toml"],
+      "expected_bug_classes": ["stale_python_requires", "unpinned_dependency", "missing_lockfile"],
+      "expected_minimum_bugs": 3,
+      "suggested_command": "python targets/sectors/package_health/probes/check_package_health.py --project targets/sectors/package_health/fixtures/python_requires_stale --kind python",
+      "forbidden_stdout": ["stale_python_requires", "unpinned_dependency", "missing_lockfile"],
+      "repo_audit_expected_signals": ["stale_python_requires", "unpinned_dependency", "missing_lockfile"],
+      "timeout_sec": 10
+    },
+    {
+      "id": "ci_build_drift",
+      "target_path": "targets/sectors/package_health/fixtures/ci_build_drift/.github/workflows/build.yml",
+      "data_paths": [
+        "targets/sectors/package_health/fixtures/ci_build_drift/.github/workflows/build.yml",
+        "targets/sectors/package_health/fixtures/ci_build_drift/.nvmrc"
+      ],
+      "expected_bug_classes": ["unpinned_dependency", "deprecated_script", "engine_mismatch"],
+      "expected_minimum_bugs": 3,
+      "suggested_command": "python targets/sectors/package_health/probes/check_package_health.py --project targets/sectors/package_health/fixtures/ci_build_drift --kind ci",
+      "forbidden_stdout": ["unpinned_dependency", "deprecated_script", "engine_mismatch"],
+      "repo_audit_expected_signals": ["unpinned_dependency", "deprecated_script", "engine_mismatch"],
+      "timeout_sec": 10
+    }
+  ]
+}

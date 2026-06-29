@@ -1,0 +1,150 @@
+{
+  "tracks": {
+    "visual_to_site": {
+      "objective": "Turn a complex concept image into a working responsive website while preserving visual hierarchy, density, and credible product feel.",
+      "target": "targets/visual_to_site/trading_terminal_concept.md",
+      "verification": [
+        "desktop_screenshot",
+        "mobile_screenshot",
+        "layout_failure_count",
+        "manual_visual_score"
+      ],
+      "primary_metric": "visual_score_per_minute"
+    },
+    "speed_fleet": {
+      "objective": "Optimize a deliberately bloated website for load/render speed without visual or interaction regressions.",
+      "target": "targets/speed_fleet/bloated_dashboard.html",
+      "verification": [
+        "browser_metrics",
+        "screenshot",
+        "interaction_smoke"
+      ],
+      "primary_metric": "performance_delta_with_zero_regression"
+    },
+    "playthrough_debug": {
+      "objective": "Use browser playthroughs to reproduce user-task failures, repair them, and prevent regressions.",
+      "target": "targets/playthrough_debug/buggy_dashboard.html",
+      "task_file": "targets/playthrough_debug/tasks.json",
+      "verification": [
+        "task_completion_rate",
+        "failure_count",
+        "regression_count",
+        "screenshot"
+      ],
+      "primary_metric": "pass_rate_delta_per_loop"
+    },
+    "generic_bug_hunt": {
+      "objective": "Given arbitrary interactive software, automatically discover controls, exercise click paths, capture screenshots and runtime evidence, then produce reproducible bug candidates and targeted fix hypotheses.",
+      "target": "targets/generic_bug_hunt/generic_bug_hunter.md",
+      "verification": [
+        "control_discovery_count",
+        "click_path_coverage",
+        "screenshot_evidence_count",
+        "runtime_error_count",
+        "bug_candidate_precision",
+        "fix_verification_delta"
+      ],
+      "primary_metric": "verified_bug_find_and_fix_rate_per_minute"
+    },
+    "org_builder": {
+      "objective": "Given a target, define and test candidate research/build/verify org layouts, then identify the simplest team configuration on the Pareto frontier.",
+      "target": "targets/org_builder/team_config_optimizer.md",
+      "verification": [
+        "ablation_table_completeness",
+        "score_delta",
+        "failure_count",
+        "total_seconds",
+        "pareto_frontier_position"
+      ],
+      "primary_metric": "quality_per_org_complexity"
+    }
+  },
+  "topologies": {
+    "solo": {
+      "description": "One generalist handles the whole task in one pass.",
+      "roles": [
+        "generalist"
+      ]
+    },
+    "critic_loop": {
+      "description": "Builder produces, critic finds flaws, builder repairs.",
+      "roles": [
+        "builder",
+        "critic"
+      ]
+    },
+    "manager_specialist": {
+      "description": "Manager routes narrow tasks to specialists and integrates verifier feedback.",
+      "roles": [
+        "manager",
+        "researcher",
+        "builder",
+        "verifier",
+        "repair"
+      ]
+    },
+    "tournament": {
+      "description": "Independent workers propose alternatives; judge selects or merges.",
+      "roles": [
+        "builder_a",
+        "builder_b",
+        "builder_c",
+        "judge"
+      ]
+    },
+    "frontier_sweep": {
+      "description": "Many small variants sweep prompt/topology choices; keep Pareto winners.",
+      "roles": [
+        "manager",
+        "variant_worker",
+        "judge",
+        "verifier"
+      ]
+    },
+    "bug_lab": {
+      "description": "Explorer, runtime sentinel, visual inspector, form fuzzer, reproduction writer, fixer, and regression verifier work as a bug-finding lab.",
+      "roles": [
+        "manager",
+        "researcher",
+        "bug_explorer",
+        "visual_inspector",
+        "verifier",
+        "repair"
+      ]
+    },
+    "org_builder": {
+      "description": "Research lead proposes team layouts, protocol builder turns them into ablations, evidence skeptic filters claims, and verifier certifies results.",
+      "roles": [
+        "manager",
+        "researcher",
+        "org_architect",
+        "experiment_designer",
+        "verifier"
+      ]
+    }
+  },
+  "research_persona_framework": {
+    "name": "Belbin-inspired research team",
+    "source_doc": "docs/persona_framework.md",
+    "prompt": "prompts/personas/belbin_research_team.md",
+    "roles": {
+      "coordinator": "Research Lead",
+      "plant": "Hypothesis Generator",
+      "resource_investigator": "Source Scout",
+      "monitor_evaluator": "Evidence Skeptic",
+      "specialist": "Domain Expert",
+      "implementer": "Protocol Builder",
+      "completer_finisher": "Audit QA",
+      "shaper": "Deadline Driver",
+      "teamworker": "Integrator"
+    },
+    "guardrail": "Research personas propose and critique; builders implement; verifiers certify."
+  },
+  "score_weights": {
+    "final_score": 0.35,
+    "pass_rate_pct": 0.25,
+    "failure_count": -0.15,
+    "regression_count": -0.15,
+    "total_seconds": -0.1
+  }
+}

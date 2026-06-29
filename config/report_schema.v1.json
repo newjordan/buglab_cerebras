@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "buglab.report.v1",
+  "title": "Bug Lab Standard Report Manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "tool",
+    "target",
+    "status",
+    "metrics",
+    "evidence",
+    "findings",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "buglab.report.v1"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "tool": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["passed", "failed", "needs_review", "unknown"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "created_at_utc": {
+      "type": "string"
+    },
+    "output_dir": {
+      "type": "string"
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["value"],
+        "properties": {
+          "value": {},
+          "unit": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "path"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "condition": {
+            "type": "string"
+          },
+          "selector": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "viewport": {
+            "type": "object"
+          },
+          "metadata": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "severity", "status", "category", "signals", "evidence_ids"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": ["critical", "high", "medium", "low", "info"]
+          },
+          "status": {
+            "enum": ["open", "fixed", "needs_review", "false_positive"]
+          },
+          "category": {
+            "type": "string"
+          },
+          "selector": {
+            "type": "string"
+          },
+          "signals": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reproduction_steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected": {
+            "type": "string"
+          },
+          "actual": {
+            "type": "string"
+          },
+          "fix_hypothesis": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object"
+    }
+  }
+}

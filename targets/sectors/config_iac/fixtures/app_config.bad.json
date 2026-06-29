@@ -1,0 +1,11 @@
+{
+  "service": "checkout-api",
+  "port": "8080",
+  "database": {
+    "host": "db.internal",
+    "pool_size": 0,
+  },
+  "features": {
+    "require_tls": false
+  }
+}

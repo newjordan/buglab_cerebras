@@ -1,0 +1,5 @@
+event_id,occurred_at,user_id,event_type
+E-3,2026-06-28T09:02:00-05:00,42,checkout
+E-1,06/28/2026 09:01 AM,42,login
+E-2,2026-06-28T09:01:30Z,42,search
+E-2,2026-06-28T09:03:00Z,42,purchase

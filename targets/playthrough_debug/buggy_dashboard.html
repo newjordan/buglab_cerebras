@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Buggy Dashboard Fixture</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #f3f4f6; color: #111827; }
+      main { max-width: 1040px; margin: 0 auto; padding: 28px; }
+      header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+      .grid { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+      .panel { background: white; border: 1px solid #d1d5db; border-radius: 8px; padding: 16px; }
+      .orders li { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+      button, input, select { min-height: 40px; border: 1px solid #9ca3af; border-radius: 6px; padding: 0 10px; }
+      button { background: #2563eb; color: white; cursor: pointer; }
+      #toast { min-height: 24px; color: #b91c1c; font-weight: 700; }
+      @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Portfolio Console</h1>
+        <strong id="status">Disconnected</strong>
+      </header>
+      <section class="grid">
+        <div class="panel">
+          <h2>Orders</h2>
+          <ul class="orders" id="orders"></ul>
+          <button id="refresh">Refresh Orders</button>
+        </div>
+        <form class="panel" id="ticket">
+          <h2>New Alert</h2>
+          <label>Symbol <input id="symbol" value="NVDA"></label>
+          <label>Threshold <input id="threshold" value="120"></label>
+          <button id="save" type="submit">Save Alert</button>
+          <p id="toast"></p>
+        </form>
+      </section>
+    </main>
+    <script>
+      const orders = document.querySelector("#orders");
+      const status = document.querySelector("#status");
+      const refresh = document.querySelector("#refresh");
+      const ticket = document.querySelector("#ticket");
+      const toast = document.querySelector("#toast");
+
+      function renderOrders() {
+        orders.innerHTML = "";
+        ["NVDA", "MSFT", "AMD"].forEach((symbol, index) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<span>${symbol}</span><strong>${index % 2 ? "Open" : "Filled"}</strong>`;
+          orders.append(li);
+        });
+      }
+
+      refresh.addEventListener("click", () => {
+        status.textContent = "Connected";
+        // Intentional fixture bug: refresh never renders orders.
+      });
+
+      ticket.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const symbol = document.querySelector("#symbol").value.trim();
+        const threshold = Number(document.querySelector("#threshold").value);
+        if (!symbol || Number.isNaN(threshold)) {
+          toast.textContent = "Invalid alert";
+          return;
+        }
+        // Intentional fixture bug: success path still reports an error.
+        toast.textContent = "Could not save alert";
+      });
+    </script>
+  </body>
+</html>
+

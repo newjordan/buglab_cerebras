@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>API Workflow Fixture - Fetch Status Console</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #f7f9fc; color: #172033; }
+      main { max-width: 980px; margin: 0 auto; padding: 28px; }
+      header { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 18px; }
+      section { background: #fff; border: 1px solid #d7dee8; border-radius: 8px; padding: 16px; margin-bottom: 14px; }
+      button { min-height: 40px; border: 1px solid #415a77; border-radius: 6px; background: #315f8a; color: #fff; padding: 0 12px; cursor: pointer; }
+      .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+      ul { padding-left: 22px; }
+      #status { min-height: 28px; font-weight: 700; color: #8f1d1d; }
+      #audit { color: #5b6472; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Fulfillment API Console</h1>
+        <strong id="connection">Idle</strong>
+      </header>
+      <section>
+        <h2>Orders</h2>
+        <div class="actions">
+          <button id="refresh">Refresh Orders</button>
+          <button id="ship">Ship Selected Order</button>
+        </div>
+        <p id="status"></p>
+        <ul id="orders"></ul>
+        <p id="audit">No API calls yet.</p>
+      </section>
+    </main>
+    <script>
+      const status = document.querySelector("#status");
+      const connection = document.querySelector("#connection");
+      const orders = document.querySelector("#orders");
+      const audit = document.querySelector("#audit");
+
+      function fakeFetch(path) {
+        if (path === "/api/orders") {
+          return Promise.resolve({ ok: false, status: 503, json: async () => ({ message: "upstream timeout" }) });
+        }
+        if (path === "/api/orders/ship") {
+          return Promise.resolve({ ok: false, status: 409, json: async () => ({ message: "order already closed" }) });
+        }
+        return Promise.reject(new Error("unknown endpoint"));
+      }
+
+      document.querySelector("#refresh").addEventListener("click", async () => {
+        connection.textContent = "Connected";
+        const response = await fakeFetch("/api/orders");
+        if (!response.ok) {
+          console.error("GET /api/orders failed with HTTP " + response.status);
+          status.textContent = "Failed to load orders from mocked endpoint.";
+          audit.textContent = "HTTP " + response.status + " was surfaced but no retry or empty state was rendered.";
+          return;
+        }
+        const payload = await response.json();
+        orders.innerHTML = payload.orders.map((order) => `<li>${order.id}</li>`).join("");
+      });
+
+      document.querySelector("#ship").addEventListener("click", async () => {
+        const response = await fakeFetch("/api/orders/ship");
+        const body = await response.json();
+        console.error("POST /api/orders/ship returned " + response.status + " but UI marks the order shipped.");
+        status.textContent = "Order shipped successfully.";
+        audit.textContent = "Ignored API status " + response.status + ": " + body.message;
+        orders.innerHTML = "<li>Order 1042 - shipped</li>";
+      });
+    </script>
+  </body>
+</html>

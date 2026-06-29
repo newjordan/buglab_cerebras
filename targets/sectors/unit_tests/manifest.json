@@ -1,0 +1,35 @@
+{
+  "sector": "unit_tests",
+  "runner": "tests",
+  "description": "Dependency-free Python unittest fixtures that expose common code-test defects.",
+  "fixtures": [
+    {
+      "id": "billing_rules_tests",
+      "target_path": "targets/sectors/unit_tests/fixtures/test_billing_rules.py",
+      "suggested_command": "python -m unittest targets/sectors/unit_tests/fixtures/test_billing_rules.py",
+      "expected_bug_classes": ["failing_assertion", "skipped_critical_test"],
+      "repo_audit_expected_signals": ["failing_assertion:test_failure", "skipped_critical_test:skip_signal", "skipped_critical_test:static_skip_decorator"],
+      "expected_minimum_bugs": 2,
+      "timeout_sec": 10
+    },
+    {
+      "id": "inventory_contract_tests",
+      "target_path": "targets/sectors/unit_tests/fixtures/test_inventory_contract.py",
+      "suggested_command": "python -m unittest targets/sectors/unit_tests/fixtures/test_inventory_contract.py",
+      "expected_bug_classes": ["unhandled_exception", "contract_mismatch"],
+      "repo_audit_expected_signals": ["unhandled_exception:test_error", "nonzero_test_exit:1"],
+      "expected_minimum_bugs": 2,
+      "timeout_sec": 10
+    },
+    {
+      "id": "authorization_coverage_tests",
+      "target_path": "targets/sectors/unit_tests/fixtures/test_authorization_coverage.py",
+      "suggested_command": "python -m unittest targets/sectors/unit_tests/fixtures/test_authorization_coverage.py",
+      "expected_bug_classes": ["failing_assertion", "missing_test_coverage"],
+      "repo_audit_expected_signals": ["failing_assertion:test_failure", "nonzero_test_exit:1"],
+      "expected_minimum_bugs": 2,
+      "min_test_count": 2,
+      "timeout_sec": 10
+    }
+  ]
+}

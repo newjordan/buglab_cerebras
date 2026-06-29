@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>API Workflow Fixture - Optimistic Queue</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #f8fbf8; color: #1f2933; }
+      main { max-width: 900px; margin: 0 auto; padding: 28px; }
+      .panel { background: #fff; border: 1px solid #d7e2d4; border-radius: 8px; padding: 16px; }
+      input, button { min-height: 40px; border: 1px solid #64748b; border-radius: 6px; padding: 0 10px; }
+      button { background: #3f6f48; color: white; cursor: pointer; }
+      .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+      #banner { min-height: 28px; color: #8a2018; font-weight: 700; }
+      li { padding: 8px 0; border-bottom: 1px solid #e1e8df; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Optimistic Comment Queue</h1>
+      <section class="panel">
+        <div class="row">
+          <input id="comment" value="Approve refund" aria-label="comment">
+          <button id="add">Add Comment</button>
+          <button id="sync">Sync Queue</button>
+          <button id="clear">Clear Local Queue</button>
+        </div>
+        <p id="banner"></p>
+        <ul id="comments"></ul>
+      </section>
+    </main>
+    <script>
+      const comment = document.querySelector("#comment");
+      const banner = document.querySelector("#banner");
+      const comments = document.querySelector("#comments");
+      const storageKey = "apiWorkflowOptimisticComments";
+
+      function readQueue() {
+        return JSON.parse(localStorage.getItem(storageKey) || "[]");
+      }
+
+      function writeQueue(queue) {
+        localStorage.setItem(storageKey, JSON.stringify(queue));
+      }
+
+      function render() {
+        comments.innerHTML = readQueue().map((item) => `<li>${item.text} - ${item.state}</li>`).join("");
+      }
+
+      function saveCommentApi() {
+        return Promise.reject(new Error("403 permission denied"));
+      }
+
+      document.querySelector("#add").addEventListener("click", async () => {
+        const optimistic = { text: comment.value.trim() || "Untitled", state: "pending" };
+        writeQueue([optimistic, ...readQueue()]);
+        render();
+        try {
+          await saveCommentApi(optimistic);
+          optimistic.state = "synced";
+          writeQueue([optimistic, ...readQueue()]);
+        } catch (error) {
+          console.error("Optimistic API save failed but queue was not rolled back: " + error.message);
+          banner.textContent = "Saved locally after server denied the request.";
+        }
+      });
+
+      document.querySelector("#sync").addEventListener("click", () => {
+        const queue = readQueue();
+        writeQueue([...queue, ...queue]);
+        render();
+        console.error("Queue sync failed and duplicated pending localStorage entries.");
+        banner.textContent = "Failed to sync; pending comments were duplicated.";
+      });
+
+      document.querySelector("#clear").addEventListener("click", () => {
+        localStorage.removeItem(storageKey);
+        render();
+        banner.textContent = "Local queue cleared.";
+      });
+
+      render();
+    </script>
+  </body>
+</html>

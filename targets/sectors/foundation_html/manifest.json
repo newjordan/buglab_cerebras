@@ -1,0 +1,23 @@
+{
+  "schema_version": "buglab.sector.v1",
+  "sector": "foundation_html",
+  "name": "Foundation HTML Interaction",
+  "runner": "browser",
+  "description": "Baseline broken HTML control fixture for click-through, runtime, state, request, navigation, and visibility bugs.",
+  "fixtures": [
+    {
+      "id": "broken_controls",
+      "runner": "browser",
+      "target": "targets/sectors/foundation_html/broken_controls.html",
+      "expected_bug_classes": [
+        "pageerror",
+        "requestfailed",
+        "text_error_flag",
+        "semantic_submit_no_success_state",
+        "broken_navigation",
+        "visibility_layout"
+      ],
+      "expected_min_bugs": 4
+    }
+  ]
+}

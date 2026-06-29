@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Optimized Market Dashboard Candidate</title>
+    <style>
+      :root { font-family: Arial, sans-serif; color: #f5f7fb; background: #111827; }
+      body { margin: 0; min-height: 100vh; background: linear-gradient(160deg, #0f172a, #111827 45%, #1f2937); }
+      .app { display: grid; grid-template-columns: 280px 1fr 340px; gap: 16px; padding: 18px; }
+      .panel { border: 1px solid rgba(255,255,255,.14); border-radius: 8px; background: rgba(255,255,255,.06); box-shadow: 0 18px 50px rgba(0,0,0,.25); }
+      .panel h2 { margin: 0; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.12); font-size: 14px; text-transform: uppercase; }
+      .watch { padding: 8px; }
+      .row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 9px; border-bottom: 1px solid rgba(255,255,255,.08); }
+      .up { color: #34d399; }
+      .down { color: #fb7185; }
+      .chart { height: 520px; padding: 16px; position: relative; overflow: hidden; }
+      .bar { position: absolute; bottom: 60px; width: 7px; background: #38bdf8; opacity: .75; }
+      .candle { position: absolute; width: 9px; background: #34d399; box-shadow: 0 0 0 1px rgba(0,0,0,.2); }
+      .candle.down { background: #fb7185; }
+      .ticket { padding: 16px; display: grid; gap: 12px; }
+      button, input, select { min-height: 38px; border: 0; border-radius: 6px; padding: 0 10px; }
+      button { color: white; background: #2563eb; cursor: pointer; }
+      .buy { background: #059669; }
+      .sell { background: #dc2626; }
+      .news { grid-column: 1 / -1; padding: 12px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+      .story { min-height: 84px; padding: 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; background: rgba(255,255,255,.05); }
+      @media (max-width: 900px) { .app { grid-template-columns: 1fr; } .news { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel">
+        <h2>Watchlist</h2>
+        <div class="watch" id="watch"></div>
+      </section>
+      <section class="panel">
+        <h2>NVDA intraday</h2>
+        <div class="chart" id="chart"></div>
+      </section>
+      <section class="panel">
+        <h2>Order Ticket</h2>
+        <div class="ticket">
+          <select><option>NVDA</option><option>MSFT</option><option>AMD</option></select>
+          <input value="100" aria-label="quantity">
+          <input value="122.40" aria-label="limit price">
+          <button class="buy">Buy</button>
+          <button class="sell">Sell</button>
+          <p>Risk estimate recalculates quickly because this candidate removes synthetic main-thread burn.</p>
+        </div>
+      </section>
+      <section class="panel news" id="news"></section>
+    </main>
+    <script>
+      window.__fixtureStart = performance.now();
+      const symbols = ["NVDA","MSFT","AMD","TSLA","AAPL","META","GOOG","PLTR","COIN","SMCI","AVGO","QQQ","SPY","IWM"];
+      const watch = document.querySelector("#watch");
+      const chart = document.querySelector("#chart");
+      const news = document.querySelector("#news");
+      const formatCache = new Map();
+
+      function fastFormat(value) {
+        if (!formatCache.has(value)) {
+          const estimate = Math.sin(value) * Math.cos(value);
+          formatCache.set(value, estimate.toFixed(2));
+        }
+        return formatCache.get(value);
+      }
+
+      const watchFrag = document.createDocumentFragment();
+      for (let i = 0; i < 900; i++) {
+        const symbol = symbols[i % symbols.length];
+        const delta = Math.sin(i) * 4;
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `<strong>${symbol}</strong><span>$${(90 + i / 9).toFixed(2)}</span><span class="${delta > 0 ? "up" : "down"}">${delta.toFixed(2)}%</span>`;
+        watchFrag.append(row);
+      }
+      watch.append(watchFrag);
+
+      const chartFrag = document.createDocumentFragment();
+      for (let i = 0; i < 280; i++) {
+        const candle = document.createElement("div");
+        candle.className = `candle ${i % 3 === 0 ? "down" : ""}`;
+        candle.style.left = `${18 + i * 10}px`;
+        candle.style.bottom = `${90 + Math.abs(Math.sin(i / 9) * 230)}px`;
+        candle.style.height = `${20 + Math.abs(Math.cos(i / 5) * 90)}px`;
+        chartFrag.append(candle);
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        bar.style.left = `${18 + i * 10}px`;
+        bar.style.height = `${20 + Math.abs(Math.sin(i / 3) * 54)}px`;
+        chartFrag.append(bar);
+      }
+      chart.append(chartFrag);
+
+      const newsFrag = document.createDocumentFragment();
+      for (let i = 0; i < 80; i++) {
+        const story = document.createElement("article");
+        story.className = "story";
+        story.textContent = `Market alert ${i + 1}: volatility cluster ${fastFormat(i)} detected across semiconductor basket.`;
+        newsFrag.append(story);
+      }
+      news.append(newsFrag);
+
+      window.__fixtureReady = true;
+      window.__fixtureReadyAt = performance.now();
+    </script>
+  </body>
+</html>

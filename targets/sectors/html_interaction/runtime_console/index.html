@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Runtime Console Fixture</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: system-ui, sans-serif; background: #fbfbf7; color: #18202d; }
+      main { width: min(1040px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 44px; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+      .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+      button { min-height: 40px; border: 1px solid #7d8da1; border-radius: 6px; padding: 9px 12px; background: #4f46e5; color: #fff; font: inherit; cursor: pointer; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .panel { background: #fff; border: 1px solid #d9dee8; border-radius: 8px; padding: 16px; min-height: 180px; }
+      #feed { padding-left: 18px; min-height: 80px; }
+      #status { min-height: 24px; color: #a31d1d; font-weight: 700; }
+      .chart { height: 120px; border: 1px dashed #9aa8bb; border-radius: 6px; display: grid; place-items: center; color: #667085; }
+      @media (max-width: 720px) { .topbar { align-items: flex-start; flex-direction: column; } .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="topbar">
+        <div>
+          <h1>Ops Monitor</h1>
+          <p>Live status board for active facilities.</p>
+        </div>
+        <div class="actions">
+          <button id="connect" type="button">Connect Service</button>
+          <button id="refresh-feed" type="button">Refresh Feed</button>
+          <button id="load-chart" type="button">Load Chart</button>
+        </div>
+      </section>
+      <section class="grid">
+        <article class="panel">
+          <h2>Feed</h2>
+          <ul id="feed"></ul>
+          <p id="status">Waiting for connection</p>
+        </article>
+        <article class="panel">
+          <h2>Throughput</h2>
+          <div class="chart" id="chart">No series loaded</div>
+        </article>
+      </section>
+    </main>
+    <script>
+      const status = document.querySelector("#status");
+
+      document.querySelector("#connect").addEventListener("click", () => {
+        throw new Error("connectService is undefined");
+      });
+
+      document.querySelector("#refresh-feed").addEventListener("click", () => {
+        console.error("refresh feed failed: feed adapter returned null");
+        status.textContent = "Refresh failed";
+      });
+
+      document.querySelector("#load-chart").addEventListener("click", () => {
+        fetch("/missing-chart-series.json").catch(() => {
+          status.textContent = "Could not load chart";
+        });
+      });
+    </script>
+  </body>
+</html>

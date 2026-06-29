@@ -1,0 +1,37 @@
+{
+  "sector": "config_iac",
+  "version": 1,
+  "description": "Dependency-free config and IaC fixtures with broken JSON, env contract drift, and compose/workflow-style misconfiguration.",
+  "fixtures": [
+    {
+      "id": "broken_json_config",
+      "target_path": "targets/sectors/config_iac/fixtures/app_config.bad.json",
+      "data_paths": ["targets/sectors/config_iac/fixtures/app_config.bad.json"],
+      "expected_bug_classes": ["bad_exit_code", "schema_mismatch"],
+      "expected_minimum_bugs": 2,
+      "suggested_command": "python targets/sectors/config_iac/probes/check_json_config.py --config targets/sectors/config_iac/fixtures/app_config.bad.json",
+      "repo_audit_expected_signals": ["invalid_json"],
+      "timeout_sec": 10
+    },
+    {
+      "id": "env_example_mismatch",
+      "target_path": "targets/sectors/config_iac/fixtures/.env",
+      "data_paths": ["targets/sectors/config_iac/fixtures/.env"],
+      "expected_bug_classes": ["bad_exit_code", "schema_mismatch"],
+      "expected_minimum_bugs": 2,
+      "suggested_command": "python targets/sectors/config_iac/probes/check_env_contract.py --env targets/sectors/config_iac/fixtures/.env --example targets/sectors/config_iac/fixtures/.env.example",
+      "repo_audit_expected_signals": ["env_missing_keys", "env_extra_keys", "env_debug_enabled", "env_secret_too_short"],
+      "timeout_sec": 10
+    },
+    {
+      "id": "compose_workflow_misconfig",
+      "target_path": "targets/sectors/config_iac/fixtures/compose-workflow.yml",
+      "data_paths": ["targets/sectors/config_iac/fixtures/compose-workflow.yml"],
+      "expected_bug_classes": ["bad_exit_code", "schema_mismatch", "missing_file_handling"],
+      "expected_minimum_bugs": 3,
+      "suggested_command": "python targets/sectors/config_iac/probes/check_compose_workflow.py --file targets/sectors/config_iac/fixtures/compose-workflow.yml",
+      "repo_audit_expected_signals": ["iac_unpinned_latest_image", "iac_missing_env_file", "iac_missing_healthcheck", "iac_unpinned_workflow_action", "iac_floating_workflow_runner", "iac_privileged_host_port"],
+      "timeout_sec": 10
+    }
+  ]
+}

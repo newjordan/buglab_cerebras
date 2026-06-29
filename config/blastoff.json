@@ -1,0 +1,22 @@
+{
+  "event_name": "Cerebras x Google Gemma 4 Hackathon",
+  "start_local": "2026-06-28T12:00:00-05:00",
+  "default_provider": "cerebras",
+  "required_env": [
+    "CEREBRAS_API_KEY"
+  ],
+  "preferred_model_patterns": [
+    "gemma",
+    "gpt-oss-120b",
+    "zai-glm-4.7"
+  ],
+  "blastoff_sequence": [
+    "python scripts/blastoff.py",
+    "python scripts/run_ablation.py --run-id A001",
+    "python scripts/run_ablation.py --run-id B001",
+    "python scripts/run_ablation.py --run-id C001",
+    "python scripts/run_matrix.py --limit 3"
+  ],
+  "artifact_root": "runs"
+}
+

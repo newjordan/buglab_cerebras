@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BugLab - R&D bug-hunting loop</title>
+    <link rel="stylesheet" href="/app.css">
+  </head>
+  <body>
+    <main class="desktop">
+      <section class="os-window" aria-label="BugLab">
+        <header class="titlebar">
+          <div class="title-left">
+            <span class="app-icon" aria-hidden="true"></span>
+            <strong>BugLab</strong>
+          </div>
+          <div class="window-controls" aria-hidden="true"><span></span><span></span><span></span></div>
+        </header>
+
+        <nav class="toolbar" aria-label="Status">
+          <div class="address-bar"><span>buglab://project</span></div>
+          <span id="status" class="status">Ready</span>
+        </nav>
+
+        <section id="introView" class="view intro-view">
+          <img class="brand-lockup" src="/buglab-hero-mage.png" alt="buglab. Rapid Recursive Bug Hunter.">
+          <p class="brand-motto">Rapid Recursive Bug Hunter</p>
+          <div class="choice-grid" aria-label="Start options">
+            <button id="huntFull" class="big-choice primary" type="button">
+              <span>Find Bugs</span>
+              <small>calibrated detector sweep</small>
+            </button>
+            <button id="describeIssue" class="big-choice" type="button">
+              <span>Describe Issue</span>
+              <small>guide the swarm</small>
+            </button>
+            <button id="findAndFix" class="big-choice" type="button">
+              <span>Find + Fix</span>
+              <small>detect, patch, verify</small>
+            </button>
+          </div>
+        </section>
+
+        <section id="issueView" class="view issue-view" hidden>
+          <div class="panel issue-panel">
+            <div class="panel-heading">
+              <h2>Describe Issue</h2>
+              <button id="backToIntro" class="small-button" type="button">Back</button>
+            </div>
+            <div class="issue-layout">
+              <form id="issueForm" class="issue-form">
+                <label>
+                  <span>Problem</span>
+                  <textarea id="issueText" rows="7" placeholder="Example: checkout works locally but the payment button hangs after I choose a plan."></textarea>
+                </label>
+                <label>
+                  <span>Attach Files</span>
+                  <input id="issueFiles" type="file" multiple>
+                </label>
+                <div id="fileList" class="file-list">No files selected.</div>
+                <button class="big-choice primary inline-hunt" type="submit">
+                  <span>Find Bugs</span>
+                  <small>guided sweep</small>
+                </button>
+              </form>
+              <div class="agent-card" aria-live="polite">
+                <span class="agent-dot"></span>
+                <p>Tell BugLab what feels broken. The swarm will bias exploration toward that area, then still run a structured sweep.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="huntView" class="view hunt-view" hidden>
+          <div class="hunt-header">
+            <div>
+              <p class="eyebrow">Hunt in progress</p>
+              <h1>Mission Control</h1>
+            </div>
+            <strong id="huntMode">Full sweep</strong>
+          </div>
+          <div class="hunt-grid">
+            <section class="panel mission-stage">
+              <div class="panel-heading">
+                <h2>Swarm Graph</h2>
+                <span id="swarmReadout">booting</span>
+              </div>
+              <div id="swarmGraph" class="chart swarm-chart" role="img" aria-label="Animated bug hunting swarm"></div>
+              <div class="feedback-loop-strip" aria-label="Internal recursive feedback loop">
+                <div class="feedback-loop-copy">
+                  <h2>Recursive Loop</h2>
+                  <span id="feedbackLoopReadout">probe</span>
+                </div>
+                <div id="feedbackLoopGraph" class="chart feedback-loop-chart" role="img" aria-label="Internal feedback loop animation"></div>
+              </div>
+              <div class="telemetry-dock">
+                <div class="telemetry-heading">
+                  <h2>Agent Throughput</h2>
+                  <span id="telemetryReadout">0 agents</span>
+                </div>
+                <div class="telemetry-layout">
+                  <div id="runTelemetryGraph" class="chart telemetry-chart" role="img" aria-label="Active agents and processed LOC"></div>
+                  <div id="tokenSpeedometer" class="chart speedometer-chart" role="img" aria-label="Token processing speedometer"></div>
+                </div>
+              </div>
+            </section>
+            <aside class="panel checkpoint-panel">
+              <div class="panel-heading">
+                <h2>Progress</h2>
+                <span id="checkpointCount">0/5</span>
+              </div>
+              <ol id="checkpointList" class="checkpoint-list"></ol>
+            </aside>
+          </div>
+        </section>
+
+        <section id="reportView" class="view report-view" hidden>
+          <div class="report-shell">
+            <div class="report-title-row">
+              <div>
+                <p class="eyebrow">Final artifact</p>
+                <h1>Bug Report</h1>
+              </div>
+              <strong id="reportBugCount" class="bug-count">0 issues</strong>
+            </div>
+            <p id="reportHeadline" class="report-headline"></p>
+            <section class="panel report-graph-panel">
+              <div class="panel-heading">
+                <h2>Issue Categories</h2>
+                <span id="reportGraphLabel">animated graph</span>
+              </div>
+              <div id="reportGraph" class="chart report-chart" role="img" aria-label="Bug report category graph"></div>
+              <div id="reportReplayGraph" class="chart report-replay-chart" role="img" aria-label="Animated report assembly flow"></div>
+            </section>
+            <div id="reportSummary" class="report-summary"></div>
+            <div class="report-tabs" role="tablist" aria-label="Report details">
+              <button class="report-tab active" type="button" data-report-tab="overview">Overview</button>
+              <button class="report-tab" type="button" data-report-tab="evidence">Evidence</button>
+              <button class="report-tab" type="button" data-report-tab="categories">Categories</button>
+              <button class="report-tab" type="button" data-report-tab="findings">Findings</button>
+              <button class="report-tab" type="button" data-report-tab="fixed">Fixed Bugs</button>
+              <button class="report-tab" type="button" data-report-tab="agent">Agent Copy</button>
+            </div>
+            <section id="overviewPanel" class="report-panel active" data-report-panel="overview"></section>
+            <section id="evidencePanel" class="report-panel" data-report-panel="evidence"></section>
+            <section id="categoriesPanel" class="report-panel" data-report-panel="categories"></section>
+            <section id="findingsPanel" class="report-panel" data-report-panel="findings"></section>
+            <section id="fixedPanel" class="report-panel" data-report-panel="fixed"></section>
+            <section id="agentPanel" class="report-panel" data-report-panel="agent">
+              <div class="agent-copy-header">
+                <h2>Agent Copy Summary</h2>
+                <button id="copyAgentSummary" class="small-button" type="button">Copy</button>
+              </div>
+              <textarea id="agentSummary" readonly rows="10"></textarea>
+            </section>
+            <div class="report-actions">
+              <a id="openReport" class="tool-button" href="#" target="_blank" rel="noreferrer">Open Report</a>
+              <button id="newHunt" type="button">New Hunt</button>
+            </div>
+          </div>
+        </section>
+        <footer class="site-mark" aria-label="BugLab version and information">
+          <div class="site-mark-copy">
+            <span>BugLab v0.1.0</span>
+            <button id="infoButton" class="info-button" type="button" aria-haspopup="dialog" aria-controls="infoDialog">Info</button>
+          </div>
+          <img src="/frosted-flake-green.png" alt="Frosty40 mark">
+        </footer>
+      </section>
+    </main>
+    <div id="infoDialog" class="info-dialog" role="dialog" aria-modal="true" aria-labelledby="infoTitle" hidden>
+      <div class="info-backdrop" data-close-info></div>
+      <section class="info-card" tabindex="-1">
+        <div class="info-card-heading">
+          <h2 id="infoTitle">BugLab v0.1.0</h2>
+          <button id="closeInfo" class="info-close" type="button" aria-label="Close info">X</button>
+        </div>
+        <p>BugLab is rapid recursive bug hunting featuring Ponytail, the <a href="https://victorchen96.github.io/auto_research/framework.html" target="_blank" rel="noreferrer">DELI R&amp;D method</a>, and Cerebras Inference with Gemma-family models where configured.</p>
+        <p>Rapidly comb the codebase for issues, generate a report, and run basic patch/fix loops. Rapid information, and bug hunting.</p>
+        <div class="info-credits">
+          <strong>Credits and attributions</strong>
+          <span>Made by Frosty40 for the Cerebras x Google Gemma hackathon.</span>
+          <span>Charts use <a href="https://echarts.apache.org/" target="_blank" rel="noreferrer">Apache ECharts</a>, licensed under Apache License 2.0.</span>
+          <span>Agent workflow concepts reference <a href="https://github.com/DietrichGebert/ponytail" target="_blank" rel="noreferrer">Ponytail</a>, licensed under MIT, and <a href="https://victorchen96.github.io/auto_research/framework.html" target="_blank" rel="noreferrer">DELI AutoResearch framework</a> concepts.</span>
+          <span>Inference uses Cerebras Inference and Google Gemma-family models, subject to the applicable model and service terms.</span>
+          <span>This project is an independent hackathon submission and is not endorsed by, sponsored by, or affiliated with Apache, Cerebras, Google, Ponytail, or DELI R&amp;D unless otherwise stated. Trademarks belong to their respective owners.</span>
+        </div>
+      </section>
+    </div>
+    <div id="targetDialog" class="info-dialog target-dialog" role="dialog" aria-modal="true" aria-labelledby="targetDialogTitle" hidden>
+      <div class="info-backdrop" data-close-target></div>
+      <section class="info-card target-dialog-card" tabindex="-1">
+        <div class="info-card-heading">
+          <h2 id="targetDialogTitle">Select Target</h2>
+          <button id="closeTarget" class="info-close" type="button" aria-label="Close target selector">X</button>
+        </div>
+        <div class="target-modal-visual" aria-hidden="true"></div>
+        <p>Enter the local project path BugLab should scan from the machine running this server.</p>
+        <label class="target-path">
+          <span>Local Path</span>
+          <input id="targetPath" type="text" spellcheck="false" placeholder="C:\path\to\project">
+        </label>
+        <small id="targetMeta" class="target-meta">Enter the local project path BugLab should scan.</small>
+        <button id="targetApply" class="target-button" type="button">Set Target</button>
+      </section>
+    </div>
+    <script src="/vendor/echarts.min.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

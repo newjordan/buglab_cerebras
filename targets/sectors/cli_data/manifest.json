@@ -1,0 +1,60 @@
+{
+  "sector": "cli_data",
+  "version": 1,
+  "description": "Standalone Python CLI/data pipeline fixtures with intentional failures for non-browser bug hunting.",
+  "fixtures": [
+    {
+      "id": "invoice_rollup",
+      "target_path": "targets/sectors/cli_data/fixtures/invoice_rollup.py",
+      "data_paths": ["targets/sectors/cli_data/data/invoices.csv"],
+      "expected_bug_classes": ["bad_exit_code", "missing_file_handling"],
+      "expected_minimum_bugs": 2,
+      "suggested_command": "python targets/sectors/cli_data/fixtures/invoice_rollup.py --input targets/sectors/cli_data/data/invoices.csv --output tmp/cli_data/invoice_totals.csv"
+    },
+    {
+      "id": "lead_importer",
+      "target_path": "targets/sectors/cli_data/fixtures/lead_importer.py",
+      "data_paths": ["targets/sectors/cli_data/data/leads.csv"],
+      "expected_bug_classes": ["bad_csv_parsing", "schema_mismatch", "silent_data_loss"],
+      "expected_output_fields": ["lead_id", "email", "company"],
+      "forbidden_output_fields": ["id", "email_address"],
+      "renamed_output_fields": {
+        "lead_id": "id",
+        "email": "email_address"
+      },
+      "expected_minimum_bugs": 3,
+      "suggested_command": "python targets/sectors/cli_data/fixtures/lead_importer.py --input targets/sectors/cli_data/data/leads.csv --output tmp/cli_data/leads.json"
+    },
+    {
+      "id": "event_export",
+      "target_path": "targets/sectors/cli_data/fixtures/event_export.py",
+      "data_paths": ["targets/sectors/cli_data/data/events.csv"],
+      "expected_bug_classes": ["flaky_timestamp_order_assumption", "silent_data_loss", "schema_mismatch"],
+      "unique_key": "event_id",
+      "timestamp_field": "occurred_at",
+      "output_key_field": "event_id",
+      "output_timestamp_field": "occurred_at",
+      "expected_output_fields": ["event_id", "occurred_at", "user_id", "event_type"],
+      "forbidden_output_fields": ["timestamp", "user", "type"],
+      "renamed_output_fields": {
+        "occurred_at": "timestamp",
+        "user_id": "user",
+        "event_type": "type"
+      },
+      "expected_minimum_bugs": 3,
+      "suggested_command": "python targets/sectors/cli_data/fixtures/event_export.py --input targets/sectors/cli_data/data/events.csv --output tmp/cli_data/events.json"
+    },
+    {
+      "id": "inventory_sync",
+      "target_path": "targets/sectors/cli_data/fixtures/inventory_sync.py",
+      "data_paths": [
+        "targets/sectors/cli_data/data/inventory_items.csv",
+        "targets/sectors/cli_data/data/warehouses.csv"
+      ],
+      "expected_bug_classes": ["schema_mismatch", "silent_data_loss", "missing_file_handling"],
+      "expected_output_fields": ["sku", "warehouse", "region", "quantity"],
+      "expected_minimum_bugs": 3,
+      "suggested_command": "python targets/sectors/cli_data/fixtures/inventory_sync.py --items targets/sectors/cli_data/data/inventory_items.csv --warehouses targets/sectors/cli_data/data/warehouses.csv --output tmp/cli_data/inventory.csv"
+    }
+  ]
+}

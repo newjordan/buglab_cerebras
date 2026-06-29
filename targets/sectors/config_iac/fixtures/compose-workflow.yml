@@ -1,0 +1,22 @@
+services:
+  web:
+    image: checkout-api:latest
+    ports:
+      - "80:8080"
+    env_file:
+      - .env.production
+    depends_on:
+      - db
+  worker:
+    image: checkout-worker:latest
+    environment:
+      DATABASE_URL: sqlite:///tmp/dev.db
+  db:
+    image: postgres:latest
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - run: docker compose up -d

@@ -1,0 +1,48 @@
+{
+  "schema_version": "buglab.sector.v1",
+  "sector": "security_auth",
+  "runner": "command",
+  "description": "Dependency-free static security/auth fixtures for generic business repos: literal secrets, cookie flags, JWT validation, debug auth bypasses, rate limits, and CORS.",
+  "fixtures": [
+    {
+      "id": "static_secret_and_cors",
+      "target_path": "targets/sectors/security_auth/fixtures/service_config.py",
+      "data_paths": ["targets/sectors/security_auth/fixtures/service_config.py"],
+      "expected_bug_classes": ["hardcoded_secret", "permissive_cors"],
+      "expected_minimum_bugs": 2,
+      "suggested_command": "python targets/sectors/security_auth/probes/check_security_auth.py --target targets/sectors/security_auth/fixtures/service_config.py --expect hardcoded_secret permissive_cors",
+      "forbidden_stdout": ["hardcoded_secret", "permissive_cors"],
+      "timeout_sec": 10
+    },
+    {
+      "id": "session_cookie_debug_bypass",
+      "target_path": "targets/sectors/security_auth/fixtures/session_handlers.py",
+      "data_paths": ["targets/sectors/security_auth/fixtures/session_handlers.py"],
+      "expected_bug_classes": ["insecure_cookie", "debug_auth_bypass"],
+      "expected_minimum_bugs": 2,
+      "suggested_command": "python targets/sectors/security_auth/probes/check_security_auth.py --target targets/sectors/security_auth/fixtures/session_handlers.py --expect insecure_cookie debug_auth_bypass",
+      "forbidden_stdout": ["insecure_cookie", "debug_auth_bypass"],
+      "timeout_sec": 10
+    },
+    {
+      "id": "weak_jwt_gateway",
+      "target_path": "targets/sectors/security_auth/fixtures/jwt_gateway.py",
+      "data_paths": ["targets/sectors/security_auth/fixtures/jwt_gateway.py"],
+      "expected_bug_classes": ["weak_jwt_validation", "hardcoded_secret"],
+      "expected_minimum_bugs": 2,
+      "suggested_command": "python targets/sectors/security_auth/probes/check_security_auth.py --target targets/sectors/security_auth/fixtures/jwt_gateway.py --expect weak_jwt_validation hardcoded_secret",
+      "forbidden_stdout": ["weak_jwt_validation", "hardcoded_secret"],
+      "timeout_sec": 10
+    },
+    {
+      "id": "password_reset_without_throttle",
+      "target_path": "targets/sectors/security_auth/fixtures/password_reset.py",
+      "data_paths": ["targets/sectors/security_auth/fixtures/password_reset.py"],
+      "expected_bug_classes": ["missing_rate_limit", "permissive_cors"],
+      "expected_minimum_bugs": 2,
+      "suggested_command": "python targets/sectors/security_auth/probes/check_security_auth.py --target targets/sectors/security_auth/fixtures/password_reset.py --expect missing_rate_limit permissive_cors",
+      "forbidden_stdout": ["missing_rate_limit", "permissive_cors"],
+      "timeout_sec": 10
+    }
+  ]
+}

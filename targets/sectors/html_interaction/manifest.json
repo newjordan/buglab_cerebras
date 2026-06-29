@@ -1,0 +1,55 @@
+{
+  "sector": "html_interaction",
+  "description": "Standalone broken HTML interaction fixtures for BugLab browser crawling and evidence capture.",
+  "fixtures": [
+    {
+      "id": "click_through_shop",
+      "target_path": "targets/sectors/html_interaction/click_through_shop/index.html",
+      "expected_bug_classes": [
+        "click-through failure",
+        "missing link target",
+        "broken checkout state",
+        "console error"
+      ],
+      "expected_minimum_bugs": 3,
+      "notes": "Cart and checkout actions either do not change state, change only the hash, or emit runtime errors."
+    },
+    {
+      "id": "broken_controls",
+      "target_path": "targets/sectors/html_interaction/broken_controls/index.html",
+      "expected_bug_classes": [
+        "broken form control",
+        "disabled primary action",
+        "semantic no-state-change",
+        "invalid success path"
+      ],
+      "expected_minimum_bugs": 3,
+      "notes": "Valid synthetic form values still produce invalid copy, and key controls are inert or disabled."
+    },
+    {
+      "id": "runtime_console",
+      "target_path": "targets/sectors/html_interaction/runtime_console/index.html",
+      "expected_bug_classes": [
+        "console error",
+        "page exception",
+        "fetch scheme error",
+        "failed load state"
+      ],
+      "expected_minimum_bugs": 3,
+      "notes": "Visible controls emit console errors, throw exceptions, and attempt an unsupported local-file fetch."
+    },
+    {
+      "id": "modal_menu",
+      "target_path": "targets/sectors/html_interaction/modal_menu/index.html",
+      "expected_bug_classes": [
+        "modal bug",
+        "menu visibility issue",
+        "focus/close failure",
+        "layout occlusion",
+        "missing menu links"
+      ],
+      "expected_minimum_bugs": 3,
+      "notes": "The drawer and modal open into clipped or uncloseable states, with missing menu destinations."
+    }
+  ]
+}

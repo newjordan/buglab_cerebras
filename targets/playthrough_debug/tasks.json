@@ -1,0 +1,21 @@
+[
+  {
+    "id": "orders-refresh",
+    "description": "Refresh orders and verify at least three order rows render.",
+    "steps": [
+      {"action": "click", "selector": "#refresh"},
+      {"action": "expect_count_at_least", "selector": "#orders li", "count": 3}
+    ]
+  },
+  {
+    "id": "save-alert",
+    "description": "Save a valid alert and verify the UI reports success.",
+    "steps": [
+      {"action": "fill", "selector": "#symbol", "value": "NVDA"},
+      {"action": "fill", "selector": "#threshold", "value": "130"},
+      {"action": "click", "selector": "#save"},
+      {"action": "expect_text_contains", "selector": "#toast", "value": "saved"}
+    ]
+  }
+]
+

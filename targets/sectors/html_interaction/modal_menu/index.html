@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Modal Menu Fixture</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: system-ui, sans-serif; background: #f5f7fa; color: #161d2d; overflow-x: hidden; }
+      header { position: sticky; top: 0; z-index: 5; min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 24px; background: #fff; border-bottom: 1px solid #d8dee9; }
+      main { width: min(1040px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 48px; }
+      button, a[role="button"] { min-height: 40px; border: 1px solid #7b8799; border-radius: 6px; padding: 9px 12px; background: #1d4ed8; color: #fff; font: inherit; cursor: pointer; text-decoration: none; }
+      .toolbar { display: flex; gap: 10px; flex-wrap: wrap; }
+      .panel { background: #fff; border: 1px solid #d9dee8; border-radius: 8px; padding: 16px; }
+      #drawer { position: fixed; top: 70px; right: -260px; z-index: 4; width: 260px; height: calc(100vh - 70px); padding: 16px; background: #ffffff; border-left: 1px solid #cfd6e3; transition: right 120ms linear; overflow: hidden; }
+      #drawer.open { right: 0; height: 72px; }
+      #drawer a { display: block; margin-bottom: 12px; color: #1d4ed8; }
+      #shade { display: none; position: fixed; inset: 0; z-index: 3; background: rgba(10, 18, 32, 0.38); }
+      #shade.open { display: block; }
+      #dialog { display: none; position: fixed; z-index: 6; top: 18px; left: 50%; width: min(560px, calc(100% - 28px)); transform: translateX(-50%); max-height: 72px; overflow: hidden; background: #fff; border: 1px solid #b8c2d4; border-radius: 8px; padding: 16px; box-shadow: 0 16px 44px rgba(15, 23, 42, 0.22); }
+      #dialog.open { display: block; }
+      #modal-status { min-height: 24px; color: #9b1c1c; font-weight: 700; }
+      .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      @media (max-width: 720px) { header { align-items: flex-start; flex-direction: column; } .content-grid { grid-template-columns: 1fr; } #drawer.open { width: 100vw; right: 0; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>Dispatch Console</strong>
+      <nav class="toolbar" aria-label="Workspace">
+        <button id="load-menu" type="button">Load Menu</button>
+        <button id="open-modal" type="button">Open Modal</button>
+        <a id="reports-link" href="#reports" role="button" onclick="missingReports()">Reports</a>
+      </nav>
+    </header>
+    <aside id="drawer" aria-label="Workspace menu">
+      <a href="#overview">Overview</a>
+      <a>Missing Schedule Link</a>
+      <a href="#settings">Settings</a>
+      <button id="close-menu" type="button">Close Menu</button>
+    </aside>
+    <div id="shade"></div>
+    <section id="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+      <h2 id="dialog-title">Assign Driver</h2>
+      <p>The lower form controls are clipped by the dialog container.</p>
+      <label>Driver <input id="driver" value="Sam"></label>
+      <p id="modal-status"></p>
+      <button id="save-modal" type="button">Save Assignment</button>
+      <button id="close-modal" type="button">Close Modal</button>
+    </section>
+    <main>
+      <section class="content-grid">
+        <article class="panel">
+          <h1>Route Queue</h1>
+          <p>Seven routes are awaiting assignment.</p>
+        </article>
+        <article class="panel">
+          <h2>Exceptions</h2>
+          <p>Two route cards need supervisor review.</p>
+        </article>
+      </section>
+    </main>
+    <script>
+      const drawer = document.querySelector("#drawer");
+      const shade = document.querySelector("#shade");
+      const dialog = document.querySelector("#dialog");
+      const modalStatus = document.querySelector("#modal-status");
+
+      document.querySelector("#load-menu").addEventListener("click", () => {
+        drawer.classList.add("open");
+        shade.classList.add("open");
+      });
+
+      document.querySelector("#close-menu").addEventListener("click", () => {
+        console.error("close menu failed: drawer controller missing");
+      });
+
+      document.querySelector("#open-modal").addEventListener("click", () => {
+        dialog.classList.add("open");
+        shade.classList.add("open");
+        modalStatus.textContent = "Focus trap failed";
+      });
+
+      document.querySelector("#close-modal").addEventListener("click", () => {
+        modalStatus.textContent = "Could not close modal";
+      });
+
+      document.querySelector("#save-modal").addEventListener("click", () => {
+        modalStatus.textContent = "Assignment failed";
+      });
+
+      function missingReports() {
+        console.error("Reports button has no route");
+      }
+    </script>
+  </body>
+</html>

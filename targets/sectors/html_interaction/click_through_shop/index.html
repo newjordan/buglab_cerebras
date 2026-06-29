@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Click Through Shop Fixture</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: system-ui, sans-serif; background: #f7f7fb; color: #172033; }
+      main { width: min(1040px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 48px; }
+      header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+      nav { display: flex; gap: 10px; flex-wrap: wrap; }
+      a, button { min-height: 40px; border: 1px solid #7c8aa5; border-radius: 6px; padding: 9px 12px; font: inherit; cursor: pointer; }
+      a { color: #1f5fbf; background: #fff; text-decoration: none; }
+      button { background: #1967d2; color: #fff; }
+      .layout { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+      .panel { background: #fff; border: 1px solid #d8dee9; border-radius: 8px; padding: 16px; }
+      .product { display: grid; grid-template-columns: 96px 1fr; gap: 14px; padding: 12px 0; border-top: 1px solid #e6e9f0; }
+      .product:first-of-type { border-top: 0; }
+      .thumb { width: 96px; height: 72px; border-radius: 6px; background: linear-gradient(135deg, #dce9ff, #b5d7d1); border: 1px solid #b8c3d6; }
+      .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+      #cart-items { min-height: 72px; padding-left: 18px; }
+      #status { min-height: 24px; font-weight: 700; color: #8a1f11; }
+      @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } header { align-items: flex-start; flex-direction: column; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Field Cart</h1>
+          <p>Compact ordering flow for kiosk hardware.</p>
+        </div>
+        <nav aria-label="Primary">
+          <a href="#catalog">Catalog</a>
+          <a id="help-link" href="#help-center" role="button" onclick="missingHelp()">Help Center</a>
+        </nav>
+      </header>
+      <section class="layout">
+        <section class="panel" id="catalog">
+          <h2>Catalog</h2>
+          <article class="product">
+            <div class="thumb" aria-hidden="true"></div>
+            <div>
+              <h3>Scanner Dock</h3>
+              <p>Charges two scanners and syncs overnight.</p>
+              <div class="actions">
+                <button id="add-dock" type="button">Add Dock</button>
+                <a id="details-link" href="missing-details.html">View Details</a>
+              </div>
+            </div>
+          </article>
+          <article class="product">
+            <div class="thumb" aria-hidden="true"></div>
+            <div>
+              <h3>Label Roll</h3>
+              <p>Warehouse-safe labels for cold storage.</p>
+              <div class="actions">
+                <button id="add-labels" type="button">Add Labels</button>
+              </div>
+            </div>
+          </article>
+        </section>
+        <aside class="panel">
+          <h2>Cart</h2>
+          <ul id="cart-items"></ul>
+          <p id="status">Cart is empty</p>
+          <button id="checkout" type="button">Checkout</button>
+        </aside>
+      </section>
+    </main>
+    <script>
+      const status = document.querySelector("#status");
+
+      document.querySelector("#add-dock").addEventListener("click", () => {
+        status.textContent = "Add failed: cart service unavailable";
+      });
+
+      document.querySelector("#add-labels").addEventListener("click", () => {
+        console.error("add labels handler failed because cartStore is undefined");
+      });
+
+      document.querySelector("#checkout").addEventListener("click", () => {
+        window.location.hash = "checkout";
+      });
+
+      function missingHelp() {
+        console.error("Help Center link has no destination");
+      }
+    </script>
+  </body>
+</html>

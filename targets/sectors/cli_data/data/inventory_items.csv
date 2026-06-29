@@ -1,0 +1,4 @@
+sku,warehouse_id,quantity
+SKU-1,W-001,8
+SKU-2,W-002,0
+SKU-3,W-999,5

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "buglab-swarm"
+version = "0.1.0"
+description = "Installable bug-hunting swarm API and CLI for browser, API workflow, and command/data QA."
+requires-python = ">=3.11"
+dependencies = [
+  "playwright>=1.45.0",
+  "openai>=1.82.1",
+  "python-dotenv>=1.0.1",
+  "httpx>=0.28.0"
+]
+
+[project.scripts]
+buglab = "buglab.cli:main"
+bughunt = "buglab.cli:hunt_main"
+
+[tool.setuptools.packages.find]
+include = ["buglab*"]

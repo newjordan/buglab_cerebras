@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>API Workflow Fixture - Payment Form State</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #f7fafc; color: #1c2530; }
+      main { max-width: 840px; margin: 0 auto; padding: 28px; }
+      form { background: #fff; border: 1px solid #d5dde6; border-radius: 8px; padding: 16px; }
+      label { display: grid; gap: 6px; margin-bottom: 12px; }
+      input, button { min-height: 40px; border: 1px solid #64748b; border-radius: 6px; padding: 0 10px; }
+      button { background: #6a4a2b; color: #fff; cursor: pointer; }
+      #receipt { min-height: 32px; color: #8a1f1f; font-weight: 700; }
+      #snapshot { background: #eef2f7; padding: 10px; border-radius: 6px; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Payment API Form</h1>
+      <form id="payment">
+        <label>Email <input id="email" name="email" value="buyer@example.com"></label>
+        <label>Amount <input id="amount" name="amount" type="number" value="25"></label>
+        <label>Confirm terms <input id="terms" name="terms" type="checkbox"></label>
+        <button id="submit" type="submit">Submit Payment</button>
+        <p id="receipt"></p>
+        <pre id="snapshot">No saved state.</pre>
+      </form>
+    </main>
+    <script>
+      const form = document.querySelector("#payment");
+      const receipt = document.querySelector("#receipt");
+      const snapshot = document.querySelector("#snapshot");
+      const storageKey = "apiWorkflowPaymentDraft";
+
+      function mockCharge(payload) {
+        if (!payload.email.includes("@") || payload.amount <= 0 || !payload.terms) {
+          return Promise.resolve({ ok: false, status: 422, body: { reason: "validation rejected" } });
+        }
+        return Promise.resolve({ ok: true, status: 201, body: { id: "pay_1042" } });
+      }
+
+      function showDraft() {
+        snapshot.textContent = localStorage.getItem(storageKey) || "No saved state.";
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const payload = {
+          email: document.querySelector("#email").value.trim(),
+          amount: Number(document.querySelector("#amount").value),
+          terms: document.querySelector("#terms").checked
+        };
+        if (!payload.email.includes("@") && payload.amount <= 0) {
+          receipt.textContent = "Fix email and amount before submitting.";
+          return;
+        }
+        localStorage.setItem(storageKey, JSON.stringify({ status: "submitted", payload }));
+        const response = await mockCharge(payload);
+        if (!response.ok) {
+          console.error("Payment API returned " + response.status + " but invalid draft remains in localStorage.");
+          receipt.textContent = "Invalid payment saved locally after API rejected it.";
+          showDraft();
+          return;
+        }
+        receipt.textContent = "Payment saved.";
+        showDraft();
+      });
+
+      showDraft();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>API Workflow Fixture - Malformed JSON Importer</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #fbfcff; color: #1d2430; }
+      main { max-width: 860px; margin: 0 auto; padding: 28px; }
+      .panel { background: #fff; border: 1px solid #d8dde7; border-radius: 8px; padding: 16px; }
+      button, textarea { border: 1px solid #6b7280; border-radius: 6px; font: inherit; }
+      button { min-height: 40px; background: #24665a; color: #fff; padding: 0 12px; cursor: pointer; }
+      textarea { width: 100%; min-height: 110px; margin: 10px 0; padding: 10px; box-sizing: border-box; }
+      #notice { min-height: 28px; color: #981b1b; font-weight: 700; }
+      table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+      td, th { border-bottom: 1px solid #e4e8f0; padding: 8px; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Customer Import API</h1>
+      <section class="panel">
+        <button id="load">Load Profile JSON</button>
+        <button id="save">Save Imported Profile</button>
+        <textarea id="raw" aria-label="raw json">{"name":"Ada","tier":"gold"</textarea>
+        <p id="notice"></p>
+        <table>
+          <tbody id="rows"></tbody>
+        </table>
+      </section>
+    </main>
+    <script>
+      const raw = document.querySelector("#raw");
+      const notice = document.querySelector("#notice");
+      const rows = document.querySelector("#rows");
+
+      function renderProfile(profile) {
+        rows.innerHTML = `<tr><th>Name</th><td>${profile.name}</td></tr><tr><th>Tier</th><td>${profile.tier}</td></tr>`;
+      }
+
+      document.querySelector("#load").addEventListener("click", () => {
+        const apiPayload = '{"name":"Ada","tier":"gold"';
+        raw.value = apiPayload;
+        const parsed = JSON.parse(apiPayload);
+        renderProfile(parsed);
+      });
+
+      document.querySelector("#save").addEventListener("click", () => {
+        try {
+          const parsed = JSON.parse(raw.value);
+          renderProfile(parsed);
+          notice.textContent = "Profile saved.";
+        } catch (error) {
+          console.error("Malformed profile JSON accepted by save flow: " + error.message);
+          notice.textContent = "Invalid JSON still left the stale imported profile ready to save.";
+        }
+      });
+    </script>
+  </body>
+</html>

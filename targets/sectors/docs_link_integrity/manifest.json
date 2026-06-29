@@ -1,0 +1,26 @@
+{
+  "sector": "docs_link_integrity",
+  "runner": "docs",
+  "description": "Markdown documentation fixtures with broken local links, missing anchors/assets, and unresolved release placeholders.",
+  "fixtures": [
+    {
+      "id": "onboarding_runbook",
+      "target_path": "targets/sectors/docs_link_integrity/onboarding.md",
+      "expected_bug_classes": ["missing_local_link", "missing_anchor", "unresolved_placeholder"],
+      "expected_minimum_bugs": 3
+    },
+    {
+      "id": "api_reference_docs",
+      "target_path": "targets/sectors/docs_link_integrity/api_reference.md",
+      "expected_bug_classes": ["missing_anchor", "missing_image_asset", "unresolved_placeholder"],
+      "expected_minimum_bugs": 3
+    },
+    {
+      "id": "release_notes_docs",
+      "target_path": "targets/sectors/docs_link_integrity/release_notes.md",
+      "expected_bug_classes": ["missing_local_link", "missing_required_term", "unresolved_placeholder"],
+      "expected_minimum_bugs": 3,
+      "required_terms": ["rollback plan"]
+    }
+  ]
+}
