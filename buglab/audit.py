@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from buglab.ignore import should_skip_common_path
 from buglab.project import discover_targets
 from buglab.api import run_loops
 from buglab.reporting import Finding
@@ -575,35 +576,7 @@ def discover_files(repo: Path, patterns: list[str], *, limit: int) -> list[Path]
 
 
 def should_skip_path(rel: str) -> bool:
-    normalized = rel.replace("\\", "/")
-    if normalized.startswith("codexlab/runs/"):
-        return True
-    if normalized.startswith("targets/sectors/"):
-        return True
-    parts = set(normalized.split("/"))
-    return bool(
-        parts
-        & {
-            ".git",
-            ".buglab",
-            ".venv",
-            "venv",
-            "env",
-            "site-packages",
-            "node_modules",
-            "vendor",
-            "__pycache__",
-            "tmp",
-            "dist",
-            "build",
-            "coverage",
-            "coverage-hooks",
-            "lcov-report",
-            "playwright-report",
-            "test-results",
-            "storybook-static",
-        }
-    )
+    return should_skip_common_path(rel, skip_sector_fixtures=True)
 
 
 def audit_row(

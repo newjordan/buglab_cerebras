@@ -8,6 +8,7 @@ from typing import Any
 
 from buglab.api import build_index
 from buglab.api import run_loops
+from buglab.ignore import should_skip_common_path
 
 PROJECT_SCHEMA_VERSION = "buglab.project.v1"
 DEFAULT_CONFIG_PATH = ".buglab/config.json"
@@ -236,31 +237,7 @@ def discover_targets(repo: Path) -> list[str]:
 
 
 def should_skip_target(rel: str) -> bool:
-    normalized = rel.replace("\\", "/")
-    if normalized.startswith("codexlab/runs/"):
-        return True
-    parts = set(normalized.split("/"))
-    return bool(
-        parts
-        & {
-            ".git",
-            ".buglab",
-            ".venv",
-            "venv",
-            "node_modules",
-            "vendor",
-            "__pycache__",
-            "tmp",
-            "dist",
-            "build",
-            "coverage",
-            "coverage-hooks",
-            "lcov-report",
-            "playwright-report",
-            "test-results",
-            "storybook-static",
-        }
-    )
+    return should_skip_common_path(rel)
 
 
 def select_targets(config: dict[str, Any], target_ids: list[str] | None) -> list[dict[str, Any]]:

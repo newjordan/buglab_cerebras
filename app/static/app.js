@@ -211,6 +211,26 @@ function renderProjectTarget() {
   if (target.localPath && els.status?.textContent === "Select target") setStatus("Ready");
 }
 
+function resetHuntSession() {
+  stopSequence();
+  state.running = false;
+  state.phase = 0;
+  state.pulseStep = 0;
+  state.loopHeat = 0;
+  state.runStartedAt = 0;
+  state.telemetryProgress = 0;
+  state.telemetry = null;
+  state.pendingHunt = null;
+  state.target = null;
+  state.mode = "find";
+  if (els.targetPath) els.targetPath.value = "";
+  if (els.issueText) els.issueText.value = "";
+  if (els.issueFiles) els.issueFiles.value = "";
+  renderFileList();
+  renderProjectTarget();
+  closeTargetDialog();
+}
+
 async function loadSubmissionSummary() {
   if (!els.liveEvidence) return;
   try {
@@ -1798,7 +1818,7 @@ els.copyAgentSummary.addEventListener("click", async () => {
   window.setTimeout(() => (els.copyAgentSummary.textContent = "Copy"), 1200);
 });
 els.newHunt.addEventListener("click", () => {
-  state.running = false;
+  resetHuntSession();
   setStatus("Ready");
   setView("intro");
 });

@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from buglab.ignore import should_skip_common_path
+
 
 @dataclass(frozen=True)
 class DoctorConfig:
@@ -193,8 +195,7 @@ def count_files(repo: Path, patterns: list[str], *, limit: int) -> int:
 
 
 def should_skip_path(rel: str) -> bool:
-    parts = set(rel.replace("\\", "/").split("/"))
-    return bool(parts & {".git", ".buglab", "node_modules", ".venv", "venv", "__pycache__", "dist", "build"})
+    return should_skip_common_path(rel)
 
 
 def summarize_checks(checks: list[dict[str, Any]]) -> dict[str, Any]:

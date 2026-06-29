@@ -9,22 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
-SKIP_DIRS = {
-    ".buglab",
-    ".git",
-    ".next",
-    ".pytest_cache",
-    ".venv",
-    "build",
-    "coverage",
-    "dist",
-    "htmlcov",
-    "lcov-report",
-    "node_modules",
-    "playwright-report",
-    "__pycache__",
-}
+from buglab.ignore import should_skip_common_path
 
 CODE_EXTENSIONS = {
     ".css",
@@ -411,7 +396,7 @@ def is_skipped(path: Path, repo: Path) -> bool:
         rel = path.relative_to(repo)
     except ValueError:
         return True
-    return any(part in SKIP_DIRS for part in rel.parts)
+    return should_skip_common_path(rel)
 
 
 def command_display(command: list[str]) -> str:
