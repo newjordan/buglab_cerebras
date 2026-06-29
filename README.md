@@ -48,6 +48,9 @@ Generated reports are written to ignored `.buglab/` folders and look standard wi
 
 <img width="1920" height="945" alt="buglab_report" src="https://github.com/user-attachments/assets/d75c5344-4a6e-407d-ad8e-11116c5e0af0" />
 
+<img width="915" height="940" alt="bug_hunt_report_ui" src="https://github.com/user-attachments/assets/0a8d1bcd-8df5-4ff9-9fe6-3d49791f583d" />
+
+
 
 ## Attributions
 
