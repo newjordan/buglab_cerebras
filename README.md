@@ -9,7 +9,7 @@ Rapid Recursive Bug Hunter.
 
 Ponytail + DELI research loops + Gemma on Cerebras = the fastest practical bug hunts possible in a 12-hour build sprint.
 
-BugLab is a one-shot local bug hunting tool. Pick a project folder, run a hunt, and get a fresh report. It does not ship with prior reports, old runs, or target-specific history.
+BugLab is a one-shot local bug hunting tool. Pick a project folder, run a hunt, and get a fresh report. 
 
 ## Run
 
