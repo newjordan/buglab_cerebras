@@ -23,6 +23,7 @@ from buglab.api import run_matrix
 from buglab.api import run_loops
 from buglab.api import scan_repo
 from buglab.api import run_swarm
+from buglab.api import run_truth_harness
 from buglab.cases import render_case_queue_text
 from buglab.doctor import render_doctor_text
 from buglab.sectors import SectorBenchmarkConfig
@@ -123,6 +124,14 @@ def build_parser() -> argparse.ArgumentParser:
     bugsinpy.add_argument("--name", default="bugsinpy", help="Run name prefix.")
     bugsinpy.add_argument("--timeout-seconds", type=int, default=180)
     bugsinpy.add_argument("--dry-run", action="store_true", help="Write the planned checkout/test/audit commands without running them.")
+
+    truth_harness = subparsers.add_parser("truth-harness", help="Run a minimal known-bug fixture pack and report calibration metrics.")
+    truth_harness.add_argument("--repo", default=".", help="Repository/root folder to run from.")
+    truth_harness.add_argument("--output", default=".buglab/runs", help="Output directory, relative to --repo unless absolute.")
+    truth_harness.add_argument("--manifest", default=None, help="Use an existing sector-style fixture manifest instead of generating one.")
+    truth_harness.add_argument("--fixture-root", default=".buglab/truth_harness/fixtures", help="Generated fixture pack directory, relative to --repo unless absolute.")
+    truth_harness.add_argument("--name", default="truth_harness", help="Run name prefix.")
+    truth_harness.add_argument("--force-fixture-pack", action="store_true", help="Overwrite the generated fixture pack files.")
 
     quality = subparsers.add_parser("quality", help="Run deterministic quality gates and write reproducible command artifacts.")
     quality.add_argument("--repo", default=".", help="Repository/root folder to check.")
@@ -437,6 +446,29 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(result, indent=2))
         return 0 if result["summary"].get("false_positive", 0) == 0 and result["summary"].get("false_negative", 0) == 0 else 1
+    if args.command == "truth-harness":
+        result = run_truth_harness(
+            repo=args.repo,
+            output=args.output,
+            manifest=args.manifest,
+            fixture_root=args.fixture_root,
+            run_name=args.name,
+            force_fixture_pack=args.force_fixture_pack,
+        )
+        print(
+            json.dumps(
+                {
+                    "run_id": result["run_id"],
+                    "summary": result["summary"],
+                    "manifest_path": result["manifest_path"],
+                    "json_path": result["json_path"],
+                    "csv_path": result["csv_path"],
+                    "truth_ledger_path": result["truth_ledger_path"],
+                },
+                indent=2,
+            )
+        )
+        return 0 if result["summary"].get("status") == "passed" else 1
     if args.command == "quality":
         result = run_quality(
             repo=args.repo,

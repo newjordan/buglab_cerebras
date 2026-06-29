@@ -326,6 +326,30 @@ def benchmark_bugsinpy(
     )
 
 
+def run_truth_harness(
+    *,
+    repo: str | Path = ".",
+    output: str | Path = ".buglab/runs",
+    manifest: str | Path | None = None,
+    fixture_root: str | Path = ".buglab/truth_harness/fixtures",
+    run_name: str = "truth_harness",
+    force_fixture_pack: bool = False,
+) -> dict[str, Any]:
+    from buglab.truth_harness import TruthHarnessConfig
+    from buglab.truth_harness import run_truth_harness as run_harness
+
+    return run_harness(
+        TruthHarnessConfig(
+            repo=repo,
+            output=output,
+            manifest=manifest,
+            fixture_root=fixture_root,
+            run_name=run_name,
+            force_fixture_pack=force_fixture_pack,
+        )
+    )
+
+
 def run_quality(
     *,
     repo: str | Path = ".",

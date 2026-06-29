@@ -15,6 +15,7 @@ from buglab.api import run_loops
 from buglab.api import run_quality
 from buglab.api import run_ablation
 from buglab.api import run_swarm
+from buglab.api import run_truth_harness
 from buglab.api import scan_repo
 
 __all__ = [
@@ -35,5 +36,6 @@ __all__ = [
     "run_quality",
     "run_ablation",
     "run_swarm",
+    "run_truth_harness",
     "scan_repo",
 ]
