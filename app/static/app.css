@@ -2310,3 +2310,48 @@ button:hover small,
   background: var(--green);
   border-color: var(--green);
 }
+
+button:hover,
+button:focus-visible,
+button:active,
+button[aria-selected="true"],
+.tool-button:hover,
+.tool-button:focus-visible,
+.tool-button:active,
+.tool-button[aria-selected="true"],
+.big-choice:hover,
+.big-choice:focus-visible,
+.big-choice:active,
+.target-button:hover,
+.target-button:focus-visible,
+.target-button:active,
+.report-tab:hover,
+.report-tab:focus-visible,
+.report-tab:active,
+.report-tab.active {
+  color: #000 !important;
+  background: var(--green) !important;
+  text-shadow: none !important;
+}
+
+button:hover *,
+button:focus-visible *,
+button:active *,
+button[aria-selected="true"] *,
+.tool-button:hover *,
+.tool-button:focus-visible *,
+.tool-button:active *,
+.tool-button[aria-selected="true"] *,
+.big-choice:hover *,
+.big-choice:focus-visible *,
+.big-choice:active *,
+.target-button:hover *,
+.target-button:focus-visible *,
+.target-button:active *,
+.report-tab:hover *,
+.report-tab:focus-visible *,
+.report-tab:active *,
+.report-tab.active * {
+  color: #000 !important;
+  text-shadow: none !important;
+}
