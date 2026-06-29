@@ -44,7 +44,10 @@ python -m buglab.cli hunt --repo C:\path\to\repo
 python -m buglab.cli tui --repo C:\path\to\repo --mode find
 ```
 
-Generated reports are written to ignored `.buglab/` folders.
+Generated reports are written to ignored `.buglab/` folders and look standard with white/professional final output options.
+
+<img width="1920" height="945" alt="buglab_report" src="https://github.com/user-attachments/assets/d75c5344-4a6e-407d-ad8e-11116c5e0af0" />
+
 
 ## Attributions
 
