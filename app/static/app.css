@@ -843,7 +843,7 @@ input {
 .mission-stage {
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(390px, 1fr) 118px 196px;
+  grid-template-rows: auto minmax(390px, 1fr) 156px 196px;
 }
 
 .swarm-chart {
@@ -887,11 +887,12 @@ input {
 }
 
 .feedback-loop-strip {
-  min-height: 118px;
+  min-height: 156px;
   display: grid;
   grid-template-columns: minmax(130px, 0.2fr) minmax(0, 1fr);
   gap: 14px;
   align-items: stretch;
+  padding: 18px 0;
 }
 
 .feedback-loop-copy {
@@ -908,7 +909,7 @@ input {
 }
 
 .feedback-loop-chart {
-  min-height: 118px;
+  min-height: 138px;
 }
 
 .chart {
@@ -1766,7 +1767,7 @@ input {
   }
 
   .mission-stage {
-    grid-template-rows: auto 256px 104px 142px;
+    grid-template-rows: auto 256px 138px 142px;
   }
 
   .swarm-chart {
@@ -1788,7 +1789,7 @@ input {
 
   .feedback-loop-strip,
   .feedback-loop-chart {
-    min-height: 104px;
+    min-height: 132px;
   }
 
   .checkpoint-panel .panel-heading {
@@ -2111,10 +2112,12 @@ input {
 .feedback-loop-strip {
   border-top: 1px solid rgba(57, 255, 20, 0.12);
   border-bottom: 1px solid rgba(57, 255, 20, 0.12);
-  padding: 8px 0;
+  min-height: 156px;
+  padding: 18px 0;
 }
 
 .feedback-loop-chart {
+  min-height: 138px;
   background: #000;
 }
 
@@ -2264,11 +2267,13 @@ input {
 
   .feedback-loop-strip {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 12px;
+    min-height: 178px;
+    padding: 18px 0;
   }
 
   .feedback-loop-chart {
-    min-height: 126px;
+    min-height: 150px;
   }
 }
 

@@ -48,6 +48,7 @@ const state = {
   target: null,
   pendingHunt: null,
   mode: "find",
+  runToken: 0,
 };
 
 const els = {
@@ -212,6 +213,7 @@ function renderProjectTarget() {
 }
 
 function resetHuntSession() {
+  state.runToken += 1;
   stopSequence();
   state.running = false;
   state.phase = 0;
@@ -229,6 +231,8 @@ function resetHuntSession() {
   renderFileList();
   renderProjectTarget();
   closeTargetDialog();
+  setStatus("Ready");
+  setView("intro");
 }
 
 async function loadSubmissionSummary() {
@@ -504,6 +508,7 @@ async function startHunt(mode, context = {}) {
     openTargetDialog({ mode, context });
     return;
   }
+  const runToken = ++state.runToken;
   state.target = target;
   state.running = true;
   state.phase = 0;
@@ -538,6 +543,7 @@ async function startHunt(mode, context = {}) {
 
   try {
     const [payload] = await Promise.all([request, runtimeRequest, minimumAnimation()]);
+    if (runToken !== state.runToken) return;
     state.telemetry = payload.result?.telemetry || payload.result?.presentation?.telemetry || state.telemetry;
     state.phase = checkpoints.length;
     renderCheckpoints();
@@ -549,6 +555,7 @@ async function startHunt(mode, context = {}) {
     showReport(payload.result, mode, { ...context, target });
     setStatus("Ready");
   } catch (error) {
+    if (runToken !== state.runToken) return;
     stopSequence();
     state.running = false;
     setStatus("Error", "error");
