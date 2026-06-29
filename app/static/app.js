@@ -965,7 +965,7 @@ function renderTokenSpeedometer(tokensPerSecond, progress = progressRatio()) {
   els.tokenSpeedometer.dataset.tokensPerSecond = String(tokensPerSecond);
   els.tokenSpeedometer.dataset.mode = fixedMode ? "ponytail_fix" : "ponytail_find";
   if (!window.echarts) {
-    els.tokenSpeedometer.innerHTML = `<div class="chart-fallback">${formatNumber(tokensPerSecond)} tok/sec</div>`;
+    els.tokenSpeedometer.innerHTML = `<div class="chart-fallback">${formatNumber(tokensPerSecond)} est tok/sec</div>`;
     return;
   }
   if (!state.speedometerChart) state.speedometerChart = echarts.init(els.tokenSpeedometer, null, { renderer: "canvas" });
@@ -1014,7 +1014,7 @@ function renderTokenSpeedometer(tokensPerSecond, progress = progressRatio()) {
         },
         detail: {
           valueAnimation: true,
-          formatter: () => `${formatNumber(tokensPerSecond)}\ntok/sec`,
+          formatter: () => `${formatNumber(tokensPerSecond)}\nest tok/sec`,
           color: accent,
           fontFamily: "Consolas, monospace",
           fontSize: 18,
@@ -1633,7 +1633,7 @@ function tokenRateLabel(source) {
   };
   const baseRate = tokenSpeed(totalTokens, telemetryProgressRatio()) / activeAgents;
   const rate = Math.round(baseRate * (sourceWeights[source] || 1));
-  return `${formatNumber(rate)} tok/s`;
+  return `${formatNumber(rate)} est tok/s`;
 }
 
 function node(id, name, symbolSize, category, x, y) {
