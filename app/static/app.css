@@ -2294,3 +2294,19 @@ input {
   padding: 0 14px;
   border: 1px solid rgba(57, 255, 20, 0.62);
 }
+
+button:hover span,
+button:hover small,
+.tool-button:hover span,
+.tool-button:hover small,
+.big-choice:hover span,
+.big-choice:hover small,
+.target-button:hover {
+  color: #000;
+  text-shadow: none;
+}
+
+.target-button:hover {
+  background: var(--green);
+  border-color: var(--green);
+}

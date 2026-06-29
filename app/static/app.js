@@ -528,7 +528,8 @@ async function startHunt(mode, context = {}) {
   startSequence();
 
   const action = mode === "guided" ? "hunt_guided" : mode === "find_fix" ? "find_and_fix" : "hunt_full";
-  const runtimeRequest = fetchJson("/api/buglab/runtime")
+  const runtimeUrl = `/api/buglab/runtime?target=${encodeURIComponent(target.localPath)}`;
+  const runtimeRequest = fetchJson(runtimeUrl)
     .then((runtime) => {
       state.telemetry = runtime;
       renderRunTelemetry(telemetryProgressRatio());
@@ -950,12 +951,12 @@ function renderRunTelemetry(progress = progressRatio()) {
 function tokenSpeed(totalTokens, progress = progressRatio()) {
   const total = Number(totalTokens || 0);
   if (!total || progress <= 0) return 0;
-  const avgRate = total / 5.2;
-  const ramp = 0.18 + Math.sin(Math.min(1, progress) * Math.PI * 0.5) * 0.82;
-  const phaseWave = 1 + Math.sin((state.phase * swarmPulseSteps + state.pulseStep) * 0.92) * 0.24;
-  const packetWave = 1 + Math.sin((state.loopHeat + state.pulseStep * 17) * 0.13) * 0.15;
-  const verifyBoost = state.phase >= 3 ? 1.16 : 1;
-  return Math.max(0, Math.round(avgRate * ramp * phaseWave * packetWave * verifyBoost));
+  if (!state.running && Number(state.telemetry?.avgTokensPerSecond || 0) > 0) {
+    return Math.round(Number(state.telemetry.avgTokensPerSecond));
+  }
+  const elapsedSeconds = Math.max(0.25, (performance.now() - (state.runStartedAt || performance.now())) / 1000);
+  const processedTokens = Math.ceil(total * Math.min(1, Math.max(0, progress)));
+  return Math.max(0, Math.round(processedTokens / elapsedSeconds));
 }
 
 function renderTokenSpeedometer(tokensPerSecond, progress = progressRatio()) {
@@ -968,7 +969,7 @@ function renderTokenSpeedometer(tokensPerSecond, progress = progressRatio()) {
     return;
   }
   if (!state.speedometerChart) state.speedometerChart = echarts.init(els.tokenSpeedometer, null, { renderer: "canvas" });
-  const averageRate = Number(state.telemetry?.estimatedTokens || 0) / 5.2;
+  const averageRate = Number(state.telemetry?.avgTokensPerSecond || 0) || tokenSpeed(Number(state.telemetry?.estimatedTokens || 0), 1);
   const maxRate = Math.max(1000, Math.ceil(Math.max(averageRate * 1.75, tokensPerSecond * 1.28) / 250) * 250);
   state.speedometerChart.setOption({
     backgroundColor: "transparent",
@@ -1630,9 +1631,8 @@ function tokenRateLabel(source) {
     project: 0.74,
     report: 1.16,
   };
-  const pulseJitter = 0.92 + (state.pulseStep % 4) * 0.045;
-  const baseRate = totalTokens / 5.2 / activeAgents;
-  const rate = Math.round(baseRate * (sourceWeights[source] || 1) * pulseJitter);
+  const baseRate = tokenSpeed(totalTokens, telemetryProgressRatio()) / activeAgents;
+  const rate = Math.round(baseRate * (sourceWeights[source] || 1));
   return `${formatNumber(rate)} tok/s`;
 }
 

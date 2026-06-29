@@ -11,6 +11,7 @@ from http.server import BaseHTTPRequestHandler
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs
 from urllib.parse import unquote
 from urllib.parse import urlsplit
 
@@ -109,7 +110,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(HTTPStatus.OK, buglab_overview())
             return
         if path == "/api/buglab/runtime":
-            self.send_json(HTTPStatus.OK, buglab_runtime())
+            query = parse_qs(urlsplit(self.path).query)
+            raw_target = str((query.get("target") or [""])[0]).strip()
+            repo = resolve_target_path(raw_target) if raw_target else None
+            self.send_json(HTTPStatus.OK, buglab_runtime(repo))
             return
         if path == "/api/buglab/submission":
             self.send_json(HTTPStatus.OK, buglab_submission())
@@ -371,8 +375,8 @@ def quick_actions() -> list[dict[str, str]]:
     ]
 
 
-def buglab_runtime() -> dict[str, object]:
-    profile = project_processing_profile()
+def buglab_runtime(repo: Path | None = None) -> dict[str, object]:
+    profile = project_processing_profile(repo)
     return {
         "ok": True,
         "activeAgents": profile["activeAgents"],
@@ -727,6 +731,13 @@ def target_repo_from_payload(payload: dict[str, object]) -> Path:
     raw_path = str(target.get("localPath", "")).strip().strip("\"'")
     if not raw_path:
         raise ValueError("No target selected. Enter a local project path before starting BugLab.")
+    return resolve_target_path(raw_path)
+
+
+def resolve_target_path(raw_path: str) -> Path:
+    raw_path = str(raw_path).strip().strip("\"'")
+    if not raw_path:
+        raise ValueError("No target selected. Enter a local project path before starting BugLab.")
     candidate = Path(raw_path).expanduser()
     if not candidate.is_absolute():
         candidate = (ROOT / candidate).resolve()
@@ -783,6 +794,7 @@ def run_full_hunt(repo: Path, run_name: str) -> dict[str, object]:
             "workflow": result.get("workflow_path", ""),
         },
         mode="find",
+        repo=repo,
     )
 
 
@@ -834,6 +846,7 @@ def run_find_and_fix(repo: Path, run_name: str) -> dict[str, object]:
             "repair": repair_result.get("html_path", ""),
         },
         mode="find_and_fix",
+        repo=repo,
     )
 
 
@@ -1088,13 +1101,13 @@ def write_find_fix_presentation_payload(
     return str(out_path)
 
 
-def action_result(summary: object, artifacts: dict[str, object], *, mode: str = "find") -> dict[str, object]:
+def action_result(summary: object, artifacts: dict[str, object], *, mode: str = "find", repo: Path | None = None) -> dict[str, object]:
     linked = {}
     for name, value in artifacts.items():
         path = Path(str(value))
         linked[name] = {"path": str(value), "href": runs_href(path) if path.exists() else ""}
     normalized_summary = summary if isinstance(summary, dict) else {}
-    presentation = build_presentation_report(normalized_summary, linked, mode=mode)
+    presentation = build_presentation_report(normalized_summary, linked, mode=mode, repo=repo)
     return {
         "summary": normalized_summary,
         "artifacts": linked,
@@ -1103,7 +1116,7 @@ def action_result(summary: object, artifacts: dict[str, object], *, mode: str = 
     }
 
 
-def build_presentation_report(summary: dict[str, Any], artifacts: dict[str, dict[str, str]], *, mode: str = "find") -> dict[str, Any]:
+def build_presentation_report(summary: dict[str, Any], artifacts: dict[str, dict[str, str]], *, mode: str = "find", repo: Path | None = None) -> dict[str, Any]:
     payload = read_primary_payload(artifacts)
     rows = payload.get("rows", []) if isinstance(payload, dict) else []
     rows = rows if isinstance(rows, list) else []
@@ -1114,7 +1127,7 @@ def build_presentation_report(summary: dict[str, Any], artifacts: dict[str, dict
     if not bug_count:
         bug_count = sum(int(category["count"]) for category in categories)
     recall = metric_float(summary, "avg_expected_class_recall", "sector_pass_rate", "detection_rate")
-    telemetry = split_processing_profile(project_processing_profile(), summary, mode=mode)
+    telemetry = split_processing_profile(project_processing_profile(repo), summary, mode=mode)
     fixed_bugs = build_fixed_bugs(repair_rows)
     findings = build_top_findings(categories, rows)
     truth_ledger = normalize_truth_ledger(payload, summary, categories, findings, fixed_bugs, telemetry)
@@ -1508,8 +1521,9 @@ def report_headline(bug_count: int, categories: list[dict[str, Any]], *, mode: s
     return f"{bug_count} issue signals found. Largest category: {leader['label']} ({leader['count']})."
 
 
-def project_processing_profile() -> dict[str, Any]:
-    stats = count_project_lines(ROOT)
+def project_processing_profile(repo: Path | None = None) -> dict[str, Any]:
+    source = (repo or ROOT).resolve()
+    stats = count_project_lines(source)
     agent_names = [
         "planner",
         "runner",
@@ -1530,7 +1544,7 @@ def project_processing_profile() -> dict[str, Any]:
         "repairCrewTokens": 0,
         "avgTokensPerSecond": 0,
         "llmTokensTracked": 0,
-        "tokenProvenance": "estimated from counted local text bytes; current hunt path records no provider usage",
+        "tokenProvenance": f"estimated from counted local text bytes in {source}; current hunt path records no provider usage",
     }
 
 
