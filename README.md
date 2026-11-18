@@ -13,9 +13,11 @@ BugLab is a one-shot local bug hunting tool. Pick a project folder, run a hunt, 
 
 ## Run
 
+Requires Python 3.11 or newer.
+
 ```powershell
-git clone https://github.com/newjordan/buglab-submission.git
-cd buglab-submission
+git clone https://github.com/newjordan/buglab_cerebras.git
+cd buglab_cerebras
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt

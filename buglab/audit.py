@@ -398,6 +398,7 @@ def env_example_rows(repo: Path) -> list[dict[str, Any]]:
         rel = example.relative_to(repo).as_posix()
         example_keys = env_keys(example)
         signals = env_value_signals(example, "example", allow_placeholders=True)
+        signals.extend(env_contract_signals(example))
         if not example_keys:
             signals.append("env_example_empty")
         rows.append(
@@ -431,6 +432,18 @@ def env_actual_path(example: Path) -> Path:
     if name.startswith(".env."):
         return example.with_name(".env")
     return example.with_name(".env")
+
+
+def env_contract_signals(example: Path) -> list[str]:
+    actual = env_actual_path(example)
+    if not actual.is_file():
+        return []
+    example_keys = env_keys(example)
+    actual_keys = env_keys(actual)
+    signals = [f"env_missing_keys:{key}" for key in sorted(example_keys - actual_keys)[:12]]
+    signals.extend(f"env_extra_keys:{key}" for key in sorted(actual_keys - example_keys)[:12])
+    signals.extend(env_value_signals(actual, "actual", allow_placeholders=False))
+    return signals
 
 
 def env_keys(path: Path) -> set[str]:
