@@ -14,3 +14,13 @@ tmp/
 reports/
 .buglab/
 *.egg-info/
+.DS_Store
+.codex/
+.claude/
+.cursor/
+.aider*
+.idea/
+.vscode/
+
+# Sector fixture, not a local secret file.
+!targets/sectors/config_iac/fixtures/.env

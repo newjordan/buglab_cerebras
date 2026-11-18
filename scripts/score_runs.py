@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import csv
 import sys
 
-from swarm_common import ABLATION_CSV
+from swarm_common import read_ablation_rows
 
 
 def as_float(value: str, default: float = 0.0) -> float:
@@ -14,8 +13,7 @@ def as_float(value: str, default: float = 0.0) -> float:
 
 
 def main() -> int:
-    with ABLATION_CSV.open("r", encoding="utf-8", newline="") as handle:
-        rows = list(csv.DictReader(handle))
+    rows = read_ablation_rows()
 
     scored = []
     for row in rows:

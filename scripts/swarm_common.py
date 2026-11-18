@@ -52,6 +52,10 @@ def read_text(path: Path) -> str:
 
 
 def read_ablation_rows() -> list[dict[str, str]]:
+    if not ABLATION_CSV.exists():
+        raise SystemExit(
+            "Missing data/ablation_runs.csv. Add rows using the schema in docs/ablation_schema.md before running ablations."
+        )
     with ABLATION_CSV.open("r", encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
 

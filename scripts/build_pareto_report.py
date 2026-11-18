@@ -5,8 +5,8 @@ import json
 import sys
 from pathlib import Path
 
-from swarm_common import ABLATION_CSV
 from swarm_common import ROOT
+from swarm_common import read_ablation_rows
 
 
 REPORT_DIR = ROOT / "reports"
@@ -35,8 +35,7 @@ def score(row: dict[str, str]) -> float:
 
 
 def load_rows() -> list[dict[str, object]]:
-    with ABLATION_CSV.open("r", encoding="utf-8", newline="") as handle:
-        rows = list(csv.DictReader(handle))
+    rows = read_ablation_rows()
     payload = []
     for row in rows:
         item: dict[str, object] = dict(row)
