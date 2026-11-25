@@ -78,6 +78,16 @@ button:hover,
 .tool-button:hover {
   color: #041007;
   background: var(--green);
+}
+
+button:focus-visible,
+.tool-button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+.report-tab:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
   text-decoration: none;
 }
 
@@ -1049,8 +1059,13 @@ input {
   text-transform: uppercase;
 }
 
-.report-headline {
+.report-headline,
+#reportContext {
   grid-column: 1 / -1;
+  margin: 0;
+}
+
+.report-headline {
   color: #a9d6ad;
   font: 15px/1.45 "Courier New", monospace;
 }

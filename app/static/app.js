@@ -46,6 +46,7 @@ const state = {
   telemetry: null,
   submission: null,
   target: null,
+  validatedPath: "",
   pendingHunt: null,
   mode: "find",
   runToken: 0,
@@ -82,6 +83,7 @@ const els = {
   checkpointCount: document.querySelector("#checkpointCount"),
   reportBugCount: document.querySelector("#reportBugCount"),
   reportHeadline: document.querySelector("#reportHeadline"),
+  reportContext: document.querySelector("#reportContext"),
   reportGraph: document.querySelector("#reportGraph"),
   reportReplayGraph: document.querySelector("#reportReplayGraph"),
   reportGraphLabel: document.querySelector("#reportGraphLabel"),
@@ -172,11 +174,36 @@ async function validateTarget(target) {
 }
 
 function selectedFiles() {
-  return [...els.issueFiles.files].map((file) => ({
+  return [...(els.issueFiles?.files || [])].map((file) => ({
     name: file.name,
     size: file.size,
     type: file.type || "unknown",
   }));
+}
+
+function looksTextual(file) {
+  const name = file.name.toLowerCase();
+  if ((file.type || "").startsWith("text/")) return true;
+  return [".py", ".js", ".ts", ".tsx", ".jsx", ".md", ".json", ".css", ".html", ".htm", ".txt", ".yml", ".yaml", ".toml", ".csv"].some((suffix) =>
+    name.endsWith(suffix),
+  );
+}
+
+async function readSelectedFiles() {
+  const files = [...(els.issueFiles?.files || [])].slice(0, 8);
+  const selected = [];
+  for (const file of files) {
+    const entry = { name: file.name, size: file.size, type: file.type || "unknown" };
+    if (file.size <= 48_000 && looksTextual(file)) {
+      try {
+        entry.text = (await file.text()).slice(0, 12_000);
+      } catch {
+        entry.text = "";
+      }
+    }
+    selected.push(entry);
+  }
+  return selected;
 }
 
 function renderFileList() {
@@ -224,6 +251,7 @@ function resetHuntSession() {
   state.telemetry = null;
   state.pendingHunt = null;
   state.target = null;
+  state.validatedPath = "";
   state.mode = "find";
   if (els.targetPath) els.targetPath.value = "";
   if (els.issueText) els.issueText.value = "";
@@ -502,9 +530,10 @@ function renderReplayMissDossiers(misses) {
 async function startHunt(mode, context = {}) {
   if (state.running) return;
   const target = context.target || selectedProjectTarget();
-  if (!target.localPath) {
+  const pathMatchesValidation = Boolean(target.localPath) && target.localPath === state.validatedPath;
+  if (!pathMatchesValidation) {
     renderProjectTarget();
-    setStatus("Select target", "error");
+    setStatus("Select target", target.localPath ? "" : "error");
     openTargetDialog({ mode, context });
     return;
   }
@@ -1046,6 +1075,7 @@ function showReport(result, mode, context) {
   els.openReport.textContent = html ? "Open Report" : "No Report Artifact";
   els.reportBugCount.textContent = `${formatNumber(presentation.bugCount || 0)} issues`;
   els.reportHeadline.textContent = presentation.headline || presentation.motto || brandMotto;
+  renderReportContext(mode, context);
   const target = context?.target || state.target || selectedProjectTarget();
   const metrics = target?.selected
     ? [{ label: "Target", value: target.name, tone: "normal" }, ...(presentation.metrics || [])]
@@ -1067,17 +1097,28 @@ function showReport(result, mode, context) {
     ? `Target folder: ${target.name}\nTarget path: ${target.localPath}\nScan source: local server filesystem\n\n`
     : "";
   els.agentSummary.value = `${targetLine}${presentation.agentSummary || `BugLab Agent Summary\n${brandMotto}\n\nNo report summary was generated.`}`;
-  if (mode === "guided" && context.issue) {
-    const note = document.createElement("p");
-    note.className = "guided-note";
-    note.textContent = `Guided by: ${context.issue}`;
-    els.categoriesPanel.prepend(note);
-  }
   activateReportTab("overview");
+}
+
+function renderReportContext(mode, context) {
+  if (!els.reportContext) return;
+  const files = (context?.files || []).map((file) => file.name).filter(Boolean);
+  const parts = [];
+  if (mode === "guided" && context?.issue) parts.push(`Guided by: ${context.issue}`);
+  if (files.length) parts.push(`Attached: ${files.join(", ")}`);
+  els.reportContext.hidden = parts.length === 0;
+  els.reportContext.textContent = parts.join(" ");
 }
 
 function showError(error) {
   setView("report");
+  state.reportChart?.dispose();
+  state.reportChart = null;
+  state.reportReplayChart?.dispose();
+  state.reportReplayChart = null;
+  if (els.reportGraph) els.reportGraph.innerHTML = "";
+  if (els.reportReplayGraph) els.reportReplayGraph.innerHTML = "";
+  renderReportContext("", {});
   els.openReport.href = "#";
   els.openReport.textContent = "No Report Artifact";
   const message = error instanceof Error ? error.message : String(error);
@@ -1461,7 +1502,11 @@ function activateReportTab(tabName) {
     tab.classList.toggle("active", active);
     tab.setAttribute("aria-selected", String(active));
   });
-  els.reportPanels.forEach((panel) => panel.classList.toggle("active", panel.dataset.reportPanel === tabName));
+  els.reportPanels.forEach((panel) => {
+    const active = panel.dataset.reportPanel === tabName;
+    panel.classList.toggle("active", active);
+    panel.hidden = !active;
+  });
 }
 
 function fallbackPresentation(summary) {
@@ -1762,11 +1807,18 @@ els.describeIssue.addEventListener("click", () => {
 });
 els.backToIntro.addEventListener("click", () => setView("intro"));
 els.issueFiles.addEventListener("change", renderFileList);
-els.issueForm.addEventListener("submit", (event) => {
+els.issueForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  startHunt("guided", { issue: els.issueText.value.trim(), files: selectedFiles(), target: selectedProjectTarget() });
+  const files = await readSelectedFiles();
+  startHunt("guided", { issue: els.issueText.value.trim(), files, target: selectedProjectTarget() });
 });
 els.targetPath?.addEventListener("input", renderProjectTarget);
+els.targetPath?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    els.targetApply?.click();
+  }
+});
 els.targetApply?.addEventListener("click", async () => {
   const target = selectedProjectTarget();
   const pendingHunt = state.pendingHunt;
@@ -1785,6 +1837,7 @@ els.targetApply?.addEventListener("click", async () => {
       const validatedTarget = await validateTarget(target);
       if (validatedTarget.localPath && els.targetPath) els.targetPath.value = validatedTarget.localPath;
       state.target = validatedTarget;
+      state.validatedPath = validatedTarget.localPath || "";
       renderProjectTarget();
       setStatus("Target set");
       if (pendingHunt) state.pendingHunt = pendingHunt;

@@ -30,7 +30,19 @@ from buglab.sectors import run_sector_benchmark
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="buglab", description="Installable bug-hunting swarm CLI.")
+    parser = argparse.ArgumentParser(
+        prog="buglab",
+        description="Local bug-hunting CLI for browser, docs, tests, and config.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "examples:\n"
+            "  buglab doctor --repo . --skip-browser\n"
+            "  buglab hunt --repo . --no-browser\n"
+            "  buglab tui --repo . --frames 1 --no-clear\n"
+            "\n"
+            "JSON command results are printed to stdout. A one-line summary is printed to stderr.\n"
+        ),
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     init = subparsers.add_parser("init", help="Create a portable .buglab/config.json for this repo.")
@@ -250,7 +262,9 @@ def main(argv: list[str] | None = None) -> int:
             max_clicks=args.max_clicks,
             force=args.force,
         )
-        print(json.dumps({"config_path": result["config_path"], "created": result["created"], "targets": result["config"].get("targets", [])}, indent=2))
+        targets = result["config"].get("targets", [])
+        note(f"BugLab init: {len(targets)} target(s), created={str(result['created']).lower()}")
+        print(json.dumps({"config_path": result["config_path"], "created": result["created"], "targets": targets}, indent=2))
         return 0
     if args.command == "run":
         result = bug_hunt(
@@ -264,6 +278,7 @@ def main(argv: list[str] | None = None) -> int:
                 profile=args.profile,
             )
         )
+        note(f"BugLab run: {result.bug_candidate_count} bug candidates in {result.run_id}")
         print(json.dumps({"run_id": result.run_id, "output_dir": result.output_dir, "bug_candidate_count": result.bug_candidate_count}, indent=2))
         return 1 if result.bug_candidate_count else 0
     if args.command == "loops":
@@ -277,7 +292,12 @@ def main(argv: list[str] | None = None) -> int:
             mobile=args.mobile,
             run_name=args.name,
         )
-        print(json.dumps(result["summary"], indent=2))
+        summary = result["summary"]
+        note(
+            f"BugLab loops: {summary.get('runs', 0)} runs, "
+            f"{summary.get('total_bug_candidates', 0)} bug candidates"
+        )
+        print(json.dumps(summary, indent=2))
         print(result["csv_path"])
         return 0
     if args.command == "matrix":
@@ -292,7 +312,12 @@ def main(argv: list[str] | None = None) -> int:
             target_ids=args.target_ids,
             build_report_index=not args.no_index,
         )
-        print(json.dumps(result["summary"], indent=2))
+        summary = result["summary"]
+        note(
+            f"BugLab matrix: {summary.get('runs', 0)} runs across {summary.get('targets', 0)} targets, "
+            f"{summary.get('total_bug_candidates', 0)} bug candidates"
+        )
+        print(json.dumps(summary, indent=2))
         print(result["csv_path"])
         if result.get("index"):
             print(result["index"]["index_path"])
@@ -311,12 +336,17 @@ def main(argv: list[str] | None = None) -> int:
             target_ids=args.target_ids,
             build_report_index=not args.no_index,
         )
+        summary = result["summary"]
+        note(
+            f"BugLab scan: {summary.get('runs', 0)} runs, "
+            f"{summary.get('total_bug_candidates', 0)} bug candidates"
+        )
         print(
             json.dumps(
                 {
                     "config_path": result["config_path"],
                     "config_created": result["config_created"],
-                    "summary": result["summary"],
+                    "summary": summary,
                     "csv_path": result["csv_path"],
                     "json_path": result["json_path"],
                     "index_path": result["index"]["index_path"] if result.get("index") else None,
@@ -340,11 +370,16 @@ def main(argv: list[str] | None = None) -> int:
             include_config=not args.no_config,
             build_report_index=not args.no_index,
         )
+        summary = result["summary"]
+        note(
+            f"BugLab {args.command}: {summary.get('total_signals', 0)} signals, "
+            f"{summary.get('failed_targets', 0)} failed targets, run {result['run_id']}"
+        )
         print(
             json.dumps(
                 {
                     "run_id": result["run_id"],
-                    "summary": result["summary"],
+                    "summary": summary,
                     "csv_path": result["csv_path"],
                     "json_path": result["json_path"],
                     "findings_csv_path": result["findings_csv_path"],
@@ -356,7 +391,7 @@ def main(argv: list[str] | None = None) -> int:
                 indent=2,
             )
         )
-        return 1 if args.exit_policy == "bugs" and result["summary"].get("total_signals", 0) else 0
+        return 1 if args.exit_policy == "bugs" and summary.get("total_signals", 0) else 0
     if args.command == "bughunt":
         result = bughunt_repo(
             repo=args.repo,
@@ -376,10 +411,15 @@ def main(argv: list[str] | None = None) -> int:
             build_report_index=not args.no_index,
             pareto_top=args.pareto_top,
         )
+        summary = result["summary"]
+        note(
+            f"BugLab bughunt: {summary.get('total_signals', 0)} signals, "
+            f"doctor={summary.get('doctor_status', 'unknown')}"
+        )
         print(
             json.dumps(
                 {
-                    "summary": result["summary"],
+                    "summary": summary,
                     "workflow_path": result["workflow_path"],
                     "audit": result["audit"],
                     "cases": result["cases"],
@@ -389,7 +429,7 @@ def main(argv: list[str] | None = None) -> int:
                 indent=2,
             )
         )
-        return 1 if args.exit_policy == "bugs" and result["summary"].get("total_signals", 0) else 0
+        return 1 if args.exit_policy == "bugs" and summary.get("total_signals", 0) else 0
     if args.command == "doctor":
         result = doctor_repo(
             repo=args.repo,
@@ -446,18 +486,20 @@ def main(argv: list[str] | None = None) -> int:
             timeout_seconds=args.timeout_seconds,
             include_audit=args.include_audit,
         )
+        summary = result["summary"]
+        note(f"BugLab quality: {summary.get('status', 'unknown')}")
         print(
             json.dumps(
                 {
                     "run_id": result["run_id"],
-                    "summary": result["summary"],
+                    "summary": summary,
                     "json_path": result["json_path"],
                     "markdown_path": result["markdown_path"],
                 },
                 indent=2,
             )
         )
-        return 0 if result["summary"].get("status") == "passed" else 1
+        return 0 if summary.get("status") == "passed" else 1
     if args.command == "medic":
         result = run_medic(
             repo=args.repo,
@@ -468,11 +510,13 @@ def main(argv: list[str] | None = None) -> int:
             run_quality=args.run_quality,
             profile=args.profile,
         )
+        summary = result["summary"]
+        note(f"BugLab medic: {summary.get('status', 'unknown')}")
         print(
             json.dumps(
                 {
                     "run_id": result["run_id"],
-                    "summary": result["summary"],
+                    "summary": summary,
                     "json_path": result["json_path"],
                     "markdown_path": result["markdown_path"],
                     "recommendations": result["recommendations"],
@@ -480,7 +524,7 @@ def main(argv: list[str] | None = None) -> int:
                 indent=2,
             )
         )
-        return 0 if result["summary"].get("status") == "clear" else 1
+        return 0 if summary.get("status") == "clear" else 1
     if args.command == "tui":
         from buglab.tui import TuiConfig
         from buglab.tui import run_tui
@@ -509,10 +553,12 @@ def main(argv: list[str] | None = None) -> int:
             repair=args.repair,
             build_report_index=not args.no_index,
         )
+        summary = result["summary"]
+        note(f"BugLab swarm: sector pass rate {summary.get('sector_pass_rate', 0)}")
         print(
             json.dumps(
                 {
-                    "summary": result["summary"],
+                    "summary": summary,
                     "csv_path": result["csv_path"],
                     "json_path": result["json_path"],
                     "html_path": result["html_path"],
@@ -521,7 +567,7 @@ def main(argv: list[str] | None = None) -> int:
                 indent=2,
             )
         )
-        return 0 if result["summary"].get("sector_pass_rate", 0) >= 1 else 1
+        return 0 if summary.get("sector_pass_rate", 0) >= 1 else 1
     if args.command == "ablate":
         result = run_ablation(
             repo=args.repo,
@@ -565,9 +611,11 @@ def main(argv: list[str] | None = None) -> int:
                 run_name=args.name,
             )
         )
-        print(json.dumps(result["summary"], indent=2))
+        summary = result["summary"]
+        note(f"BugLab sector: detection rate {summary.get('detection_rate', 0)}")
+        print(json.dumps(summary, indent=2))
         print(result["csv_path"])
-        return 0 if result["summary"].get("detection_rate", 0) >= 1 else 1
+        return 0 if summary.get("detection_rate", 0) >= 1 else 1
     if args.command == "repair-sector":
         result = repair_sector_manifest(
             manifest=args.manifest,
@@ -585,7 +633,11 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def hunt_main(argv: list[str] | None = None) -> int:
-    return main(["bughunt", *(argv or sys.argv[1:])])
+    return main(["bughunt", *(sys.argv[1:] if argv is None else argv)])
+
+
+def note(message: str) -> None:
+    print(message, file=sys.stderr)
 
 
 def parse_csv(value: str) -> list[str]:

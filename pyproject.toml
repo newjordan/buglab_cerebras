@@ -1,22 +1,36 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "buglab-swarm"
 version = "0.1.0"
-description = "Installable bug-hunting swarm API and CLI for browser, API workflow, and command/data QA."
+description = "Local bug-hunting CLI and web console for browser, docs, tests, and config."
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "playwright>=1.65.2",
-  "openai>=3.55.1",
+  "openai>=3.59.0",
   "python-dotenv>=1.2.4",
-  "httpx>=0.28.1"
+  "httpx>=0.28.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
 ]
 
 [project.scripts]
 buglab = "buglab.cli:main"
 bughunt = "buglab.cli:hunt_main"
+buglab-server = "app.server:main"
 
 [tool.setuptools.packages.find]
-include = ["buglab*"]
+include = ["buglab*", "app*"]
+
+[tool.setuptools.package-data]
+app = ["static/*", "static/vendor/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --tb=short"

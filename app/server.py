@@ -24,8 +24,10 @@ from openai import OpenAI
 from openai import OpenAIError
 
 
-ROOT = Path(__file__).resolve().parents[1]
-STATIC_DIR = ROOT / "app" / "static"
+PACKAGE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = PACKAGE_DIR / "static"
+CHECKOUT_ROOT = PACKAGE_DIR.parent
+ROOT = CHECKOUT_ROOT if (CHECKOUT_ROOT / "buglab").is_dir() and (CHECKOUT_ROOT / "pyproject.toml").is_file() else Path.cwd()
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 RUNS_DIR = ROOT / ".buglab" / "runs"
@@ -112,7 +114,11 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/buglab/runtime":
             query = parse_qs(urlsplit(self.path).query)
             raw_target = str((query.get("target") or [""])[0]).strip()
-            repo = resolve_target_path(raw_target) if raw_target else None
+            try:
+                repo = resolve_target_path(raw_target) if raw_target else None
+            except ValueError as exc:
+                self.send_json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": str(exc)})
+                return
             self.send_json(HTTPStatus.OK, buglab_runtime(repo))
             return
         if path == "/api/buglab/submission":
@@ -210,11 +216,12 @@ class Handler(BaseHTTPRequestHandler):
         )
 
     def read_json(self) -> dict[str, object]:
-        length = int(self.headers.get("content-length", "0"))
-        if length > 200_000:
-            raise ValueError("Request body is too large.")
+        length = parse_content_length(self.headers.get("content-length"))
         body = self.rfile.read(length)
-        return json.loads(body.decode("utf-8"))
+        payload = json.loads(body.decode("utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("JSON body must be an object.")
+        return payload
 
     def send_file(self, path: Path, content_type: str) -> None:
         try:
@@ -268,6 +275,20 @@ def main() -> int:
         pass
     server.serve_forever()
     return 0
+
+
+def parse_content_length(raw: str | None) -> int:
+    if raw is None or not str(raw).strip():
+        return 0
+    try:
+        length = int(str(raw).strip())
+    except ValueError as exc:
+        raise ValueError("Content-Length must be an integer.") from exc
+    if length < 0:
+        raise ValueError("Content-Length must be zero or positive.")
+    if length > 200_000:
+        raise ValueError("Request body is too large.")
+    return length
 
 
 def content_type_for(path: Path) -> str:
@@ -370,7 +391,7 @@ def runs_href(path: Path) -> str:
 def quick_actions() -> list[dict[str, str]]:
     return [
         {"id": "hunt_full", "label": "Find Bugs", "tone": "primary"},
-        {"id": "hunt_guided", "label": "Guided Find", "tone": "primary"},
+        {"id": "hunt_guided", "label": "Describe Issue", "tone": "primary"},
         {"id": "find_and_fix", "label": "Find + Fix", "tone": "primary"},
     ]
 
@@ -696,14 +717,16 @@ def run_buglab_action(action: str, payload: dict[str, object] | None = None) -> 
         result["target"] = target_payload(repo)
         return result
     if action == "hunt_guided":
+        from buglab.guidance import guidance_from_request
+
         repo = target_repo_from_payload(payload)
-        issue = str(payload.get("issue", "")).strip()
-        files = payload.get("files", [])
-        result = run_full_hunt(repo=repo, run_name=target_run_name("ui_hunt_guided", repo))
-        result["guidedContext"] = {
-            "issue": issue,
-            "files": files if isinstance(files, list) else [],
-        }
+        guidance = guidance_from_request(repo, str(payload.get("issue", "")), payload.get("files", []))
+        result = run_full_hunt(
+            repo=repo,
+            run_name=target_run_name("ui_hunt_guided", repo),
+            targets=guidance["htmlTargets"] or None,
+            guidance=guidance,
+        )
         result["target"] = target_payload(repo)
         return result
     if action == "find_and_fix":
@@ -760,13 +783,18 @@ def target_run_name(prefix: str, repo: Path) -> str:
     return f"{prefix}_{slug}_{timestamp}"
 
 
-def run_full_hunt(repo: Path, run_name: str) -> dict[str, object]:
+def run_full_hunt(
+    repo: Path,
+    run_name: str,
+    targets: list[str] | None = None,
+    guidance: dict[str, Any] | None = None,
+) -> dict[str, object]:
     from buglab.api import bughunt_repo
 
     result = bughunt_repo(
         repo=repo,
         output=RUNS_DIR,
-        targets=None,
+        targets=targets,
         loops=1,
         profiles=["balanced"],
         max_clicks=8,
@@ -784,7 +812,7 @@ def run_full_hunt(repo: Path, run_name: str) -> dict[str, object]:
     summary = dict(audit.get("summary", {}) if isinstance(audit.get("summary"), dict) else result.get("summary", {}))
     summary["workflow_path"] = result.get("workflow_path", "")
     summary["case_count"] = result.get("summary", {}).get("case_count", 0) if isinstance(result.get("summary"), dict) else 0
-    return action_result(
+    payload = action_result(
         summary,
         {
             "html": audit.get("report_path", ""),
@@ -796,6 +824,7 @@ def run_full_hunt(repo: Path, run_name: str) -> dict[str, object]:
         mode="find",
         repo=repo,
     )
+    return attach_guidance(payload, guidance, run_name)
 
 
 def run_find_and_fix(repo: Path, run_name: str) -> dict[str, object]:
@@ -1145,7 +1174,9 @@ def build_presentation_report(summary: dict[str, Any], artifacts: dict[str, dict
         {"label": "Repair Pass", "value": format_rate(metric_float(summary, "repair_pass_rate")), "tone": "fixed"} if mode == "find_and_fix" else None,
         {"label": "Active Agents", "value": telemetry["activeAgents"], "tone": "normal"},
         {"label": "LOC Processed", "value": telemetry["locProcessed"], "tone": "normal"},
-        {"label": "Avg Tok/sec", "value": telemetry["avgTokensPerSecond"], "tone": "normal"},
+        {"label": "Avg Tok/sec", "value": telemetry["avgTokensPerSecond"], "tone": "normal"}
+        if telemetry.get("throughputMeasured")
+        else None,
         {"label": "Bug Hunt Tokens", "value": telemetry["bugHuntTokens"], "tone": "normal"},
         {"label": "Repair Crew Tokens", "value": telemetry["repairCrewTokens"], "tone": "fixed"} if mode == "find_and_fix" else None,
         {"label": "Tokens Processed", "value": telemetry["estimatedTokens"], "tone": "normal"},
@@ -1462,7 +1493,7 @@ def agent_copy_summary(
         f"- Repair pass rate: {format_rate(metric_float(summary, 'repair_pass_rate'))}" if mode == "find_and_fix" else "- Repair pass rate: not run in detector-only mode.",
         f"- Active agents: {telemetry.get('activeAgents', 0)} ({', '.join(telemetry.get('agentNames', []))})",
         f"- LOC processed: {telemetry.get('locProcessed', 0)} across {telemetry.get('fileCount', 0)} counted files.",
-        f"- Average throughput: {telemetry.get('avgTokensPerSecond', 0)} tok/sec.",
+        f"- Average throughput: {format_throughput(telemetry)}",
         f"- Bug hunt tokens: {telemetry.get('bugHuntTokens', 0)}.",
         f"- Repair crew tokens: {telemetry.get('repairCrewTokens', 0)}.",
         f"- Estimated total tokens processed: {telemetry.get('estimatedTokens', 0)} ({telemetry.get('tokenProvenance', 'not available')}).",
@@ -1561,9 +1592,15 @@ def split_processing_profile(profile: dict[str, Any], summary: dict[str, Any], *
         split["bugHuntTokens"] = total_tokens
         split["repairCrewTokens"] = 0
     elapsed_ms = metric_int(summary, "elapsed_ms")
-    if elapsed_ms <= 0:
-        elapsed_ms = 5200
-    split["avgTokensPerSecond"] = int(round(total_tokens / max(0.001, elapsed_ms / 1000)))
+    split["throughputMeasured"] = elapsed_ms > 0 and total_tokens > 0
+    if split["throughputMeasured"]:
+        split["avgTokensPerSecond"] = int(round(total_tokens / (elapsed_ms / 1000)))
+    else:
+        split["avgTokensPerSecond"] = 0
+        split["tokenProvenance"] = (
+            f"{split.get('tokenProvenance', 'estimated local token budget')}; "
+            "tokens/sec omitted because this hunt did not record elapsed_ms"
+        )
     if mode == "find_and_fix":
         split["tokenProvenance"] = (
             f"{split.get('tokenProvenance', 'estimated local token budget')}; "
@@ -1700,6 +1737,37 @@ def metric_float(values: dict[str, Any], *keys: str) -> float:
         except (TypeError, ValueError):
             continue
     return 0
+
+
+def format_throughput(telemetry: dict[str, Any]) -> str:
+    if telemetry.get("throughputMeasured"):
+        return f"{telemetry.get('avgTokensPerSecond', 0)} tok/sec"
+    return "not recorded for this run"
+
+
+def attach_guidance(result: dict[str, object], guidance: dict[str, Any] | None, run_name: str) -> dict[str, object]:
+    if not guidance:
+        return result
+    from buglab.guidance import guidance_note
+
+    result["guidedContext"] = guidance
+    presentation = result.get("presentation")
+    note = guidance_note(guidance)
+    if isinstance(presentation, dict) and note:
+        presentation["agentSummary"] = note + "\n\n" + str(presentation.get("agentSummary") or "")
+        html_targets = guidance.get("htmlTargets") or []
+        if html_targets:
+            presentation["headline"] = (
+                "Guided browser targets: " + ", ".join(str(path) for path in html_targets) + ". "
+                + str(presentation.get("headline") or "")
+            ).strip()
+    path = RUNS_DIR / f"{run_name}_guidance.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(guidance, indent=2), encoding="utf-8")
+    artifacts = result.get("artifacts")
+    if isinstance(artifacts, dict):
+        artifacts["guidance"] = {"path": str(path), "href": runs_href(path) if path.exists() else ""}
+    return result
 
 
 def format_rate(value: float) -> str:

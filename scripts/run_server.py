@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -19,7 +20,9 @@ def main() -> int:
     with OUT_LOG.open("ab") as stdout, ERR_LOG.open("ab") as stderr:
         process = launch_server(stdout, stderr, creationflags)
 
-    print(f"Started latency lab pid={process.pid} url=http://127.0.0.1:8765")
+    host = os.getenv("BUGLAB_HOST", "127.0.0.1")
+    port = os.getenv("BUGLAB_PORT", "8765")
+    print(f"Started BugLab server pid={process.pid} url=http://{host}:{port}")
     print(f"stdout={OUT_LOG}")
     print(f"stderr={ERR_LOG}")
     return 0

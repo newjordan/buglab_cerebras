@@ -72,6 +72,8 @@ def run_loops(
     repo_path = Path(repo).resolve()
     output_root = (repo_path / output).resolve() if not Path(output).is_absolute() else Path(output).resolve()
     profiles = profiles or ["balanced", "business", "edge"]
+    if loops < 0:
+        loops = 0
     rows = []
     for loop_index in range(loops):
         profile = profiles[loop_index % len(profiles)]
@@ -104,8 +106,9 @@ def run_loops(
     output_root.mkdir(parents=True, exist_ok=True)
     csv_path = output_root / f"{run_name}_loop_summary.csv"
     json_path = output_root / f"{run_name}_loop_summary.json"
+    fieldnames = list(rows[0].keys()) if rows else LOOP_ROW_FIELDS
     with csv_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
     json_path.write_text(json.dumps({"summary": summary, "rows": rows}, indent=2), encoding="utf-8")
@@ -691,9 +694,32 @@ def compact_summary(summary: dict[str, Any]) -> str:
     return "; ".join(parts)
 
 
+LOOP_ROW_FIELDS = [
+    "loop",
+    "profile",
+    "run_id",
+    "output_dir",
+    "controls_discovered",
+    "controls_exercised",
+    "bug_candidate_count",
+    "failure_signal_count",
+    "failure_signals",
+    "elapsed_ms",
+    "agent_counts",
+]
+
+
 def summarize_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
     if not rows:
-        return {}
+        return {
+            "runs": 0,
+            "total_bug_candidates": 0,
+            "max_bug_candidates": 0,
+            "min_bug_candidates": 0,
+            "avg_bug_candidates": 0,
+            "avg_elapsed_ms": 0,
+            "best_profiles": [],
+        }
     bug_counts = [int(row["bug_candidate_count"]) for row in rows]
     elapsed = [int(row["elapsed_ms"]) for row in rows]
     return {
