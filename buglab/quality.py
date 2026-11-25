@@ -424,8 +424,9 @@ def decode_timeout_payload(payload: Any) -> str:
 
 
 def safe_slug(value: str) -> str:
-    chars = [char.lower() if char.isalnum() else "_" for char in value]
-    slug = "".join(chars).strip("_")
+    slug = "".join(char.lower() if char.isalnum() else "_" for char in value).strip("_")
+    while "__" in slug:
+        slug = slug.replace("__", "_")
     return slug or "quality"
 
 

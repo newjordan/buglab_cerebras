@@ -3,7 +3,9 @@ from __future__ import annotations
 import csv
 import json
 import re
+import shlex
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -234,9 +236,10 @@ def run_tests_audit(repo: Path) -> list[dict[str, Any]]:
         return [audit_row(sector="tests", runner="unittest", target="", status="skipped", signals=["no_python_test_files_found"])]
     started = time.perf_counter()
     start_dir = "tests" if (repo / "tests").is_dir() else "."
-    command = f"python -m unittest discover -s {start_dir} -p test*.py"
+    command_argv = unittest_discover_command(start_dir)
+    command = shlex.join(command_argv)
     try:
-        proc = subprocess.run(command, cwd=repo, shell=True, capture_output=True, text=True, timeout=30)
+        proc = subprocess.run(command_argv, cwd=repo, capture_output=True, text=True, timeout=30)
         signals = test_signals(
             proc,
             {
@@ -288,9 +291,10 @@ def run_test_file_audit(repo: Path, test_files: list[Path]) -> list[dict[str, An
     for path in test_files:
         started = time.perf_counter()
         rel = path.relative_to(repo).as_posix()
-        command = f"python -m unittest {rel}"
+        command_argv = unittest_file_command(rel)
+        command = shlex.join(command_argv)
         try:
-            proc = subprocess.run(command, cwd=repo, shell=True, capture_output=True, text=True, timeout=10)
+            proc = subprocess.run(command_argv, cwd=repo, capture_output=True, text=True, timeout=10)
             signals = test_signals(
                 proc,
                 {
@@ -566,6 +570,14 @@ def missing_env_files(path: Path, text: str) -> list[str]:
 
 def is_compose_like(name: str, rel: str) -> bool:
     return "compose" in name or "docker-compose" in name or "/compose" in rel
+
+
+def unittest_discover_command(start_dir: str) -> list[str]:
+    return [sys.executable, "-m", "unittest", "discover", "-s", start_dir, "-p", "test*.py"]
+
+
+def unittest_file_command(rel: str) -> list[str]:
+    return [sys.executable, "-m", "unittest", rel]
 
 
 def parsed_unittest_count(output: str) -> int:

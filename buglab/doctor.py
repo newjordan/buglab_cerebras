@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib.metadata
 import json
-import os
 import platform
 import sys
 import time
@@ -11,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from buglab.ignore import should_skip_common_path
+from buglab.runtime_env import temporary_process_tempdir
 
 
 @dataclass(frozen=True)
@@ -149,14 +149,11 @@ def check_playwright_browser(repo: Path) -> dict[str, Any]:
         return check("playwright_chromium", "failed", f"Playwright import failed: {exc}")
     try:
         temp_dir = repo / ".buglab" / "tmp" / "playwright"
-        temp_dir.mkdir(parents=True, exist_ok=True)
-        os.environ["TMP"] = str(temp_dir)
-        os.environ["TEMP"] = str(temp_dir)
-        os.environ["TMPDIR"] = str(temp_dir)
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
-            version = browser.version
-            browser.close()
+        with temporary_process_tempdir(temp_dir):
+            with sync_playwright() as playwright:
+                browser = playwright.chromium.launch(headless=True)
+                version = browser.version
+                browser.close()
     except Exception as exc:
         return check(
             "playwright_chromium",
@@ -175,8 +172,7 @@ def discover_targets(repo: Path) -> list[str]:
         "docs/index.html",
         "src/index.html",
     ]
-    found = [candidate for candidate in candidates if (repo / candidate).exists()]
-    return found or ["index.html"]
+    return [candidate for candidate in candidates if (repo / candidate).exists()]
 
 
 def count_files(repo: Path, patterns: list[str], *, limit: int) -> int:
@@ -227,6 +223,12 @@ def suggested_next_command(repo: Path, target_check: dict[str, Any]) -> str:
     return f"buglab hunt --repo {repo} --no-browser --loops 1 --profiles balanced"
 
 
+def _count(count: int, label: str) -> str:
+    if count == 1 or label in {"passed", "failed", "skipped"}:
+        return f"{count} {label}"
+    return f"{count} {label}s"
+
+
 def check(name: str, status: str, message: str, details: dict[str, Any] | None = None) -> dict[str, Any]:
     return {
         "name": name,
@@ -240,6 +242,13 @@ def render_doctor_text(payload: dict[str, Any]) -> str:
     summary = payload["summary"]
     lines = [
         f"BugLab doctor: {summary['status']}",
+        (
+            "Checks: "
+            f"{_count(summary['passed'], 'passed')}, "
+            f"{_count(summary['warnings'], 'warning')}, "
+            f"{_count(summary['failed'], 'failed')}, "
+            f"{_count(summary['skipped'], 'skipped')}"
+        ),
         f"Repo: {payload['repo']}",
         f"Report: {payload.get('report_path') or '(not written)'}",
         "",

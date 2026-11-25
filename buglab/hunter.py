@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import re
 import time
 from dataclasses import dataclass
@@ -17,6 +16,7 @@ from buglab.reporting import Evidence
 from buglab.reporting import Finding
 from buglab.reporting import ReportBuilder
 from buglab.reporting import write_json
+from buglab.runtime_env import temporary_process_tempdir
 
 
 ERROR_TEXT = re.compile(r"\b(error|failed|could not|exception|undefined|null|invalid|forbidden|denied)\b", re.I)
@@ -39,14 +39,6 @@ class HunterOptions:
 
 def now_stamp() -> str:
     return time.strftime("%Y%m%d_%H%M%S")
-
-
-def setup_temp(base_dir: Path) -> None:
-    temp_dir = base_dir / ".buglab" / "tmp" / "playwright"
-    temp_dir.mkdir(parents=True, exist_ok=True)
-    os.environ["TMP"] = str(temp_dir)
-    os.environ["TEMP"] = str(temp_dir)
-    os.environ["TMPDIR"] = str(temp_dir)
 
 
 def target_url(target: str, base_dir: Path) -> str:
@@ -379,7 +371,12 @@ def agent_labels(failures: list[str], control: dict[str, Any]) -> list[str]:
 
 
 def bug_hunt_once(options: HunterOptions) -> dict[str, Any]:
-    setup_temp(options.base_dir)
+    temp_dir = options.base_dir / ".buglab" / "tmp" / "playwright"
+    with temporary_process_tempdir(temp_dir):
+        return _bug_hunt_once(options)
+
+
+def _bug_hunt_once(options: HunterOptions) -> dict[str, Any]:
     run_id = f"{options.run_name}_{options.profile}_{now_stamp()}"
     out_dir = options.output_root / run_id
     out_dir.mkdir(parents=True, exist_ok=True)

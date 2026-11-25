@@ -30,7 +30,7 @@ def init_project_config(
     if path.exists() and not force:
         return {"config_path": str(path), "created": False, "config": load_project_config(repo=repo_path, config_path=path)}
 
-    selected_targets = targets or discover_targets(repo_path)
+    selected_targets = discover_targets(repo_path) if targets is None else targets
     config = {
         "schema_version": PROJECT_SCHEMA_VERSION,
         "output": output,
@@ -118,6 +118,8 @@ def run_project_matrix(
             )
 
     summary = summarize_matrix_rows(matrix_rows, selected)
+    if not selected:
+        summary["note"] = "No browser targets were configured."
     output_root.mkdir(parents=True, exist_ok=True)
     csv_path = output_root / f"{run_name}_{started}_matrix_summary.csv"
     json_path = output_root / f"{run_name}_{started}_matrix_summary.json"
@@ -210,8 +212,8 @@ def load_project_config(*, repo: str | Path = ".", config_path: str | Path = DEF
     config = json.loads(path.read_text(encoding="utf-8"))
     if config.get("schema_version") != PROJECT_SCHEMA_VERSION:
         raise ValueError(f"Unsupported BugLab project config schema: {config.get('schema_version')}")
-    if not isinstance(config.get("targets"), list) or not config["targets"]:
-        raise ValueError("BugLab project config must contain at least one target.")
+    if not isinstance(config.get("targets"), list):
+        raise ValueError("BugLab project config must contain a targets list.")
     return config
 
 
@@ -233,7 +235,7 @@ def discover_targets(repo: Path) -> list[str]:
     for target in discovered:
         if target not in found:
             found.append(target)
-    return found or ["index.html"]
+    return found
 
 
 def should_skip_target(rel: str) -> bool:
@@ -271,9 +273,10 @@ def target_id_from_path(target: str) -> str:
 
 
 def safe_slug(value: str) -> str:
-    chars = [char.lower() if char.isalnum() else "_" for char in value]
-    slug = "_".join("".join(chars).split("_"))
-    return slug.strip("_") or "target"
+    slug = "".join(char.lower() if char.isalnum() else "_" for char in value).strip("_")
+    while "__" in slug:
+        slug = slug.replace("__", "_")
+    return slug or "target"
 
 
 def summarize_matrix_rows(rows: list[dict[str, Any]], targets: list[dict[str, Any]]) -> dict[str, Any]:

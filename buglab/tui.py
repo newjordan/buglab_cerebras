@@ -71,7 +71,7 @@ def run_tui(config: TuiConfig | None = None, **kwargs: object) -> int:
         for frame in range(frames):
             progress = (frame % 96) / 95
             tokens_done = round(stats["estimated_tokens"] * progress)
-            tok_sec = round(tokens_done / max(0.35, progress * 5.2))
+            tok_sec = round(tokens_done / max(0.35, progress * 5.2)) if progress else 0
             if not config.no_clear:
                 clear()
             print(render_frame(repo, config.mode, frame, stats, tokens_done, tok_sec, overwatch))
@@ -112,10 +112,10 @@ def render_frame(
             "",
             *network_link_lines(frame, fix_mode, overwatch),
             "",
-            f"agents {bar((frame % 24) / 23, 22, accent)} 7 active",
-            f"loc    {bar(stats['loc'] / max(1, stats['loc']), 22, accent)} {stats['loc']:,}",
-            f"tokens {bar(tokens_done / max(1, stats['estimated_tokens']), 22, accent)} {tokens_done:,}/{stats['estimated_tokens']:,}",
-            f"speed  {speedometer(tok_sec, fix_mode)} {tok_sec:,} tok/sec",
+            f"agents {bar((frame % 24) / 23, 22, accent)} 7 roles, visual",
+            f"loc    {stats['loc']:,} lines in {stats['files']:,} files",
+            f"tokens {bar(tokens_done / max(1, stats['estimated_tokens']), 22, accent)} {tokens_done:,}/{stats['estimated_tokens']:,} estimated",
+            f"speed  {speedometer(tok_sec, fix_mode)} ~{tok_sec:,} estimated tok/sec",
             "",
             f"{red}red/yellow = candidate bugs{reset}  {accent}purple/green = {'fixed verified' if fix_mode else 'evidence found'}{reset}  {amber}truth = precision/recall/F1{reset}",
         ]
@@ -258,7 +258,7 @@ def count_repo(repo: Path) -> dict[str, int]:
         bytes_seen += len(data)
         text = data.decode("utf-8", errors="ignore")
         loc += sum(1 for line in text.splitlines() if line.strip())
-    return {"loc": loc, "files": files, "estimated_tokens": max(1, round(bytes_seen / 4))}
+    return {"loc": loc, "files": files, "estimated_tokens": max(0, round(bytes_seen / 4))}
 
 
 def load_overwatch_assets(root: str | Path | None = None) -> dict[str, object]:

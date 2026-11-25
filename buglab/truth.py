@@ -47,8 +47,8 @@ def summarize_truth_entries(entries: list[dict[str, Any]]) -> dict[str, Any]:
     recall = tp / (tp + fn) if tp + fn else None
     f1 = (2 * precision * recall / (precision + recall)) if precision is not None and recall is not None and precision + recall else None
     confirmed = statuses.get("confirmed", 0) + statuses.get("fixed", 0)
-    tokens = sum(safe_int(entry.get("metrics", {}).get("tokens", 0)) for entry in entries)
-    elapsed_ms = sum(safe_int(entry.get("metrics", {}).get("elapsed_ms", 0)) for entry in entries)
+    tokens = sum(safe_int(entry_metrics(entry).get("tokens", 0)) for entry in entries)
+    elapsed_ms = sum(safe_int(entry_metrics(entry).get("elapsed_ms", 0)) for entry in entries)
     return {
         "entries": len(entries),
         "confirmed": confirmed,
@@ -75,6 +75,11 @@ def count_by(entries: list[dict[str, Any]], key: str) -> dict[str, int]:
         value = str(entry.get(key, "") or "unknown")
         counts[value] = counts.get(value, 0) + 1
     return dict(sorted(counts.items()))
+
+
+def entry_metrics(entry: dict[str, Any]) -> dict[str, Any]:
+    metrics = entry.get("metrics")
+    return metrics if isinstance(metrics, dict) else {}
 
 
 def safe_int(value: Any) -> int:
@@ -110,13 +115,19 @@ def confidence_for_status(status: str) -> float:
 def synthesize_report_truth_ledger(manifest: dict[str, Any]) -> dict[str, Any]:
     entries = []
     run_id = str(manifest.get("run_id", ""))
+    raw_metrics = manifest.get("metrics")
+    raw_metrics = raw_metrics if isinstance(raw_metrics, dict) else {}
     metrics = {
         name: item.get("value")
-        for name, item in manifest.get("metrics", {}).items()
+        for name, item in raw_metrics.items()
         if isinstance(item, dict) and "value" in item
     }
-    evidence_by_id = {str(item.get("id")): item for item in manifest.get("evidence", []) if isinstance(item, dict)}
-    for finding in manifest.get("findings", []):
+    raw_evidence = manifest.get("evidence")
+    raw_evidence = raw_evidence if isinstance(raw_evidence, list) else []
+    evidence_by_id = {str(item.get("id")): item for item in raw_evidence if isinstance(item, dict)}
+    raw_findings = manifest.get("findings")
+    raw_findings = raw_findings if isinstance(raw_findings, list) else []
+    for finding in raw_findings:
         if not isinstance(finding, dict):
             continue
         status = "fixed" if str(finding.get("status", "")).lower() in {"fixed", "resolved", "closed"} else "suspected"

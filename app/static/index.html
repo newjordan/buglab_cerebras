@@ -124,6 +124,7 @@
               <strong id="reportBugCount" class="bug-count">0 issues</strong>
             </div>
             <p id="reportHeadline" class="report-headline"></p>
+            <p id="reportContext" class="guided-note" hidden></p>
             <section class="panel report-graph-panel">
               <div class="panel-heading">
                 <h2>Issue Categories</h2>
@@ -134,19 +135,19 @@
             </section>
             <div id="reportSummary" class="report-summary"></div>
             <div class="report-tabs" role="tablist" aria-label="Report details">
-              <button class="report-tab active" type="button" data-report-tab="overview">Overview</button>
-              <button class="report-tab" type="button" data-report-tab="evidence">Evidence</button>
-              <button class="report-tab" type="button" data-report-tab="categories">Categories</button>
-              <button class="report-tab" type="button" data-report-tab="findings">Findings</button>
-              <button class="report-tab" type="button" data-report-tab="fixed">Fixed Bugs</button>
-              <button class="report-tab" type="button" data-report-tab="agent">Agent Copy</button>
+              <button class="report-tab active" id="overviewTab" type="button" role="tab" aria-selected="true" aria-controls="overviewPanel" data-report-tab="overview">Overview</button>
+              <button class="report-tab" id="evidenceTab" type="button" role="tab" aria-selected="false" aria-controls="evidencePanel" data-report-tab="evidence">Evidence</button>
+              <button class="report-tab" id="categoriesTab" type="button" role="tab" aria-selected="false" aria-controls="categoriesPanel" data-report-tab="categories">Categories</button>
+              <button class="report-tab" id="findingsTab" type="button" role="tab" aria-selected="false" aria-controls="findingsPanel" data-report-tab="findings">Findings</button>
+              <button class="report-tab" id="fixedTab" type="button" role="tab" aria-selected="false" aria-controls="fixedPanel" data-report-tab="fixed">Fixed Bugs</button>
+              <button class="report-tab" id="agentTab" type="button" role="tab" aria-selected="false" aria-controls="agentPanel" data-report-tab="agent">Agent Copy</button>
             </div>
-            <section id="overviewPanel" class="report-panel active" data-report-panel="overview"></section>
-            <section id="evidencePanel" class="report-panel" data-report-panel="evidence"></section>
-            <section id="categoriesPanel" class="report-panel" data-report-panel="categories"></section>
-            <section id="findingsPanel" class="report-panel" data-report-panel="findings"></section>
-            <section id="fixedPanel" class="report-panel" data-report-panel="fixed"></section>
-            <section id="agentPanel" class="report-panel" data-report-panel="agent">
+            <section id="overviewPanel" class="report-panel active" role="tabpanel" aria-labelledby="overviewTab" data-report-panel="overview"></section>
+            <section id="evidencePanel" class="report-panel" role="tabpanel" aria-labelledby="evidenceTab" data-report-panel="evidence"></section>
+            <section id="categoriesPanel" class="report-panel" role="tabpanel" aria-labelledby="categoriesTab" data-report-panel="categories"></section>
+            <section id="findingsPanel" class="report-panel" role="tabpanel" aria-labelledby="findingsTab" data-report-panel="findings"></section>
+            <section id="fixedPanel" class="report-panel" role="tabpanel" aria-labelledby="fixedTab" data-report-panel="fixed"></section>
+            <section id="agentPanel" class="report-panel" role="tabpanel" aria-labelledby="agentTab" data-report-panel="agent">
               <div class="agent-copy-header">
                 <h2>Agent Copy Summary</h2>
                 <button id="copyAgentSummary" class="small-button" type="button">Copy</button>
@@ -198,7 +199,7 @@
         <p>Enter the local project path BugLab should scan from the machine running this server.</p>
         <label class="target-path">
           <span>Local Path</span>
-          <input id="targetPath" type="text" spellcheck="false" placeholder="C:\path\to\project">
+          <input id="targetPath" type="text" spellcheck="false" autocomplete="off" placeholder="path/to/project">
         </label>
         <small id="targetMeta" class="target-meta">Enter the local project path BugLab should scan.</small>
         <button id="targetApply" class="target-button" type="button">Set Target</button>
